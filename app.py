@@ -79,4 +79,51 @@ if uploaded_file is not None:
         order = df.groupby('Quý_HT')['Thời gian'].min().sort_values(ascending=False).index
         selected = st.sidebar.selectbox("Chọn quý:", order)
         filtered_df = df[df['Quý_HT'] == selected]
-    elif view
+    elif view_mode == "6 Tháng":
+        order = df.groupby('Sáu_Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
+        selected = st.sidebar.selectbox("Chọn giai đoạn 6 tháng:", order)
+        filtered_df = df[df['Sáu_Tháng_HT'] == selected]
+    else:
+        targets = sorted(df['Năm'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn năm:", targets)
+        filtered_df = df[df['Năm'] == selected]
+
+    if not filtered_df.empty:
+        st.subheader(f"📅 Báo cáo: {selected}")
+        
+        # 3. Chỉ số trung bình
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            if 'soil_ASKK' in filtered_df.columns:
+                st.metric("Ánh sáng TB", f"{filtered_df['soil_ASKK'].mean():.1f} Lux")
+        with c2:
+            t_col = 'tempKK' if 'tempKK' in filtered_df.columns else 'Nhiệt Độ'
+            if t_col in filtered_df.columns:
+                t_val = filtered_df[t_col].mean()
+                if t_val > 150: t_val /= 10
+                st.metric("Nhiệt độ TB", f"{t_val:.1f} °C")
+        with c3:
+            ec_col = 'TBEC' if 'TBEC' in filtered_df.columns else 'EC'
+            if ec_col in filtered_df.columns:
+                st.metric("EC TB", f"{filtered_df[ec_col].mean():.1f}")
+        with c4:
+            if 'Lưu lượng tổng' in filtered_df.columns:
+                usage = filtered_df['Lưu lượng tổng'].max() - filtered_df['Lưu lượng tổng'].min()
+                st.metric("Nước đã dùng", f"{usage:.1f} m³")
+
+        # 4. BIỂU ĐỒ DIỄN BIẾN
+        st.subheader("📈 Biểu đồ xu hướng diễn biến")
+        metrics = [c for c in cols_to_fix + ['AS_Value'] if c in filtered_df.columns and filtered_df[c].count() > 0]
+        selected_m = st.multiselect("Chọn thông số:", metrics, default=[metrics[0]] if metrics else [])
+        
+        if selected_m:
+            if view_mode == "Ngày":
+                chart_data = filtered_df.set_index('Thời gian')[selected_m]
+            else:
+                # Đối với Tuần/Tháng/Quý/6 Tháng: Gom theo ngày để biểu đồ dàn trải chính xác
+                chart_data = filtered_df.groupby('Ngày')[selected_m].mean()
+            
+            st.line_chart(chart_data)
+
+        with st.expander("Bảng dữ liệu chi tiết"):
+            st.dataframe(filtered_df)
