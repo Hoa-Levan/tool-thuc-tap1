@@ -2,15 +2,12 @@ import streamlit as st
 import pandas as pd
 import json
 
-# Cấu hình giao diện
-st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp", layout="wide")
-st.title("📊 Công cụ Phân tích & Lọc dữ liệu Đa năng")
+st.set_page_config(page_title="Hệ thống Phân tích Đa năng", layout="wide")
+st.title("📊 Phân tích Dữ liệu Nông nghiệp (Đa khung thời gian)")
 
-# Chức năng nạp file
 uploaded_file = st.file_uploader("Nạp tệp tin JSON của bạn", type=['json'])
 
 def parse_time_series(value):
-    """Hàm xử lý các chuỗi dữ liệu phức tạp dạng 'thời gian/giá trị'"""
     if not value or value == "0" or not isinstance(value, str):
         return None
     try:
@@ -24,98 +21,87 @@ if uploaded_file is not None:
     data = json.load(uploaded_file)
     df = pd.DataFrame(data)
     
-    # 1. Chuẩn hóa dữ liệu & Ép kiểu số
+    # 1. Chuẩn hóa dữ liệu & Thời gian
     df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
-    df = df.dropna(subset=['Thời gian']) # Bỏ dòng lỗi thời gian
+    df = df.dropna(subset=['Thời gian']).sort_values('Thời gian')
+    
+    # Tạo các cột thời gian bổ sung
     df['Ngày'] = df['Thời gian'].dt.date
+    df['Tuần'] = df['Thời gian'].dt.isocalendar().week
+    df['Tháng'] = df['Thời gian'].dt.to_period('M').astype(str)
+    df['Quý'] = df['Thời gian'].dt.to_period('Q').astype(str)
+    df['Năm'] = df['Thời gian'].dt.year.astype(str)
     
-    # Danh sách tất cả các cột tiềm năng từ cả 2 loại file
+    # Ép kiểu số an toàn
     cols_to_fix = ['soil_ASKK', 'Nhiệt Độ', 'Độ ẩm', 'Lưu lượng m2/h', 'Lưu lượng tổng', 'tempKK', 'humiKK', 'EC', 'PH', 'TBEC', 'TBPH']
-    
     for col in cols_to_fix:
         if col in df.columns:
-            # Ép kiểu số an toàn, tránh lỗi TypeError khi so sánh
             df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    # Xử lý riêng cho cột Áp suất AS (để xử lý chuỗi 16-01-59/1.05)
     if 'AS' in df.columns:
         df['AS_Value'] = df['AS'].apply(lambda x: pd.to_numeric(x, errors='coerce') if '/' not in str(x) else parse_time_series(x))
 
-    # 2. Bộ lọc Ngày
-    st.sidebar.header("Bộ lọc dữ liệu")
-    list_days = sorted(df['Ngày'].unique(), reverse=True)
-    selected_date = st.sidebar.selectbox("Chọn ngày cần xem:", list_days)
+    # 2. BỘ LỌC ĐA KHUNG THỜI GIAN
+    st.sidebar.header("Cài đặt hiển thị")
+    view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Ngày", "Tuần", "Tháng", "Quý", "Năm"])
 
-    if selected_date:
-        # Lọc và sắp xếp theo thời gian để biểu đồ không bị trống/ngắt quãng
-        filtered_df = df[df['Ngày'] == selected_date].sort_values('Thời gian')
+    if view_mode == "Ngày":
+        target_list = sorted(df['Ngày'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn ngày:", target_list)
+        filtered_df = df[df['Ngày'] == selected]
+    elif view_mode == "Tuần":
+        target_list = sorted(df['Tuần'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn số tuần (trong năm):", target_list)
+        filtered_df = df[df['Tuần'] == selected]
+    elif view_mode == "Tháng":
+        target_list = sorted(df['Tháng'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn tháng:", target_list)
+        filtered_df = df[df['Tháng'] == selected]
+    elif view_mode == "Quý":
+        target_list = sorted(df['Quý'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn quý:", target_list)
+        filtered_df = df[df['Quý'] == selected]
+    else: # Năm
+        target_list = sorted(df['Năm'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn năm:", target_list)
+        filtered_df = df[df['Năm'] == selected]
+
+    if not filtered_df.empty:
+        st.subheader(f"📅 Báo cáo dữ liệu theo {view_mode}: {selected}")
         
-        st.subheader(f"📅 Phân tích chi tiết ngày: {selected_date}")
-        
-        # 3. Khu vực Đánh giá thông số
-        st.markdown("### 📝 chỉ số trung bình")
+        # 3. Đánh giá trung bình trong giai đoạn này
         c1, c2, c3, c4 = st.columns(4)
-
-        with c1: # Ưu tiên Ánh sáng
+        with c1:
             if 'soil_ASKK' in filtered_df.columns:
-                val = filtered_df['soil_ASKK'].mean()
-                if not pd.isna(val):
-                    st.metric("Ánh sáng (Lux)", f"{val:.1f}")
-                    if val > 15000: st.warning("☀️ Ánh sáng mạnh")
-                    elif val < 5000: st.info("☁️ Ánh sáng yếu")
-                    else: st.success("✅ Ánh sáng tối ưu")
-
-        with c2: # Nhiệt độ & Độ ẩm
+                st.metric("Ánh sáng TB", f"{filtered_df['soil_ASKK'].mean():.1f}")
+        with c2:
             t_col = 'tempKK' if 'tempKK' in filtered_df.columns else 'Nhiệt Độ'
             if t_col in filtered_df.columns:
-                val_t = filtered_df[t_col].mean()
-                if not pd.isna(val_t):
-                    if val_t > 150: val_t = val_t / 10 # Sửa lỗi 331 -> 33.1
-                    st.metric("Nhiệt độ (°C)", f"{val_t:.1f}")
-                    if val_t > 35: st.error("🔥 Quá nóng!")
-                    else: st.success("✅ Ổn định")
-
-        with c3: # EC & PH (Cho file nhỏ giọt)
+                t_val = filtered_df[t_col].mean()
+                if t_val > 150: t_val /= 10
+                st.metric("Nhiệt độ TB", f"{t_val:.1f} °C")
+        with c3:
             ec_col = 'TBEC' if 'TBEC' in filtered_df.columns else 'EC'
-            ph_col = 'TBPH' if 'TBPH' in filtered_df.columns else 'PH'
-            
             if ec_col in filtered_df.columns:
-                val_ec = filtered_df[ec_col].mean()
-                if not pd.isna(val_ec) and val_ec > 0: st.metric("EC", f"{val_ec:.0f}")
-                
-            if ph_col in filtered_df.columns:
-                val_ph = filtered_df[ph_col].mean()
-                if not pd.isna(val_ph) and val_ph > 0:
-                    if val_ph > 14: val_ph = val_ph / 100
-                    st.metric("pH", f"{val_ph:.2f}")
-
-        with c4: # Áp suất & Lưu lượng
-            if 'AS_Value' in filtered_df.columns:
-                val_as = filtered_df['AS_Value'].mean()
-                if not pd.isna(val_as): st.metric("Áp suất (AS)", f"{val_as:.2f}")
-            
+                st.metric("EC trung bình", f"{filtered_df[ec_col].mean():.1f}")
+        with c4:
             if 'Lưu lượng tổng' in filtered_df.columns:
-                # Lấy giá trị lớn nhất trong ngày làm lưu lượng tổng
-                st.metric("Lưu lượng tổng", f"{filtered_df['Lưu lượng tổng'].max():.1f}")
+                total_usage = filtered_df['Lưu lượng tổng'].max() - filtered_df['Lưu lượng tổng'].min()
+                st.metric("Lượng nước đã dùng", f"{total_usage:.1f}")
 
-        # 4. Biểu đồ động
-        st.subheader("📈 Biểu đồ diễn biến theo thời gian")
+        # 4. Biểu đồ diễn biến
+        st.subheader(f"📈 Biểu đồ xu hướng trong {view_mode.lower()}")
         
-        # Tự động tìm các cột có dữ liệu thực tế (không bị trống hoàn toàn)
-        numeric_cols = [c for c in cols_to_fix + ['AS_Value'] if c in filtered_df.columns and filtered_df[c].count() > 0]
+        metrics = [c for c in cols_to_fix + ['AS_Value'] if c in filtered_df.columns and filtered_df[c].count() > 0]
+        selected_m = st.multiselect("Chọn thông số xem xu hướng:", metrics, default=[metrics[0]] if metrics else [])
         
-        selected_metrics = st.multiselect(
-            "Chọn thông số muốn xem biểu đồ:",
-            options=numeric_cols,
-            default=[numeric_cols[0]] if numeric_cols else []
-        )
-        
-        if selected_metrics:
-            # Làm sạch dữ liệu biểu đồ: loại bỏ dòng trắng của các cột đã chọn
-            chart_df = filtered_df.set_index('Thời gian')[selected_metrics].dropna(how='all')
-            st.line_chart(chart_df)
-        else:
-            st.warning("Vui lòng chọn thông số để hiển thị biểu đồ.")
+        if selected_m:
+            # Nếu xem theo giai đoạn dài, ta sẽ lấy giá trị trung bình theo từng ngày để biểu đồ dễ nhìn
+            if view_mode != "Ngày":
+                chart_data = filtered_df.groupby('Ngày')[selected_m].mean()
+            else:
+                chart_data = filtered_df.set_index('Thời gian')[selected_m]
+            
+            st.line_chart(chart_data)
 
-        with st.expander("Xem bảng dữ liệu gốc"):
-            st.write(filtered_df)
+        with st.expander("Xem chi tiết dữ liệu"):
+            st.dataframe(filtered_df)
