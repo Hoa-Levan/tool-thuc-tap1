@@ -53,7 +53,7 @@ if uploaded_file is not None:
         st.subheader(f"📅 Phân tích chi tiết ngày: {selected_date}")
         
         # 3. Khu vực Đánh giá thông số
-        st.markdown("### 📝 Đánh giá chuyên sâu")
+        st.markdown("### 📝 chỉ số trung bình")
         c1, c2, c3, c4 = st.columns(4)
 
         with c1: # Ưu tiên Ánh sáng
