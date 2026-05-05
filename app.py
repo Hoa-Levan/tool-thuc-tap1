@@ -26,32 +26,27 @@ if uploaded_file is not None:
     df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
     df = df.dropna(subset=['Thời gian']).sort_values('Thời gian')
     
+    # Tạo các cột thời gian chi tiết
     df['Ngày'] = df['Thời gian'].dt.date
     df['Tháng'] = df['Thời gian'].dt.to_period('M').astype(str)
     df['Năm'] = df['Thời gian'].dt.year.astype(str)
     
-    # Định dạng Tuần
+    # Định dạng Tuần: Tuần (01/01 - 07/01)/2025
     def get_week_range(date):
         start = date - timedelta(days=date.weekday())
         end = start + timedelta(days=6)
         return f"Tuần ({start.strftime('%d/%m')} - {end.strftime('%d/%m')})/{start.year}"
-    df['Tuần_HT'] = df['Thời gian'].dt.date.apply(get_week_range)
+    df['Tuần_Hiển_Thị'] = df['Thời gian'].dt.date.apply(get_week_range)
 
-    # Định dạng Quý
+    # Định dạng Quý: Quý 1 (Tháng 01 - Tháng 03)/2025
     def get_quarter_range(dt):
         q = (dt.month - 1) // 3 + 1
-        return f"Quý {q} (Tháng {(q-1)*3+1:02d} - Tháng {q*3:02d})/{dt.year}"
-    df['Quý_HT'] = df['Thời gian'].apply(get_quarter_range)
+        m_start = (q - 1) * 3 + 1
+        m_end = q * 3
+        return f"Quý {q} (Tháng {m_start:02d} - Tháng {m_end:02d})/{dt.year}"
+    df['Quý_Hiển_Thị'] = df['Thời gian'].apply(get_quarter_range)
 
-    # Định dạng 6 Tháng (Bán niên)
-    def get_half_year(dt):
-        if dt.month <= 6:
-            return f"6 Tháng đầu năm (Tháng 01 - Tháng 06)/{dt.year}"
-        else:
-            return f"6 Tháng cuối năm (Tháng 07 - Tháng 12)/{dt.year}"
-    df['Sáu_Tháng_HT'] = df['Thời gian'].apply(get_half_year)
-
-    # Ép kiểu số
+    # Ép kiểu số cho tất cả cột
     cols_to_fix = ['soil_ASKK', 'Nhiệt Độ', 'Độ ẩm', 'Lưu lượng m2/h', 'Lưu lượng tổng', 'tempKK', 'humiKK', 'EC', 'PH', 'TBEC', 'TBPH']
     for col in cols_to_fix:
         if col in df.columns:
@@ -61,31 +56,27 @@ if uploaded_file is not None:
 
     # 2. BỘ LỌC
     st.sidebar.header("Cài đặt hiển thị")
-    view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"])
+    view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Ngày", "Tuần", "Tháng", "Quý", "Năm"])
 
     if view_mode == "Ngày":
-        targets = sorted(df['Ngày'].unique(), reverse=True)
-        selected = st.sidebar.selectbox("Chọn ngày:", targets)
+        target_list = sorted(df['Ngày'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn ngày:", target_list)
         filtered_df = df[df['Ngày'] == selected]
     elif view_mode == "Tuần":
-        order = df.groupby('Tuần_HT')['Thời gian'].min().sort_values(ascending=False).index
-        selected = st.sidebar.selectbox("Chọn tuần:", order)
-        filtered_df = df[df['Tuần_HT'] == selected]
+        week_order = df.groupby('Tuần_Hiển_Thị')['Thời gian'].min().sort_values(ascending=False).index
+        selected = st.sidebar.selectbox("Chọn khoảng thời gian tuần:", week_order)
+        filtered_df = df[df['Tuần_Hiển_Thị'] == selected]
     elif view_mode == "Tháng":
-        targets = sorted(df['Tháng'].unique(), reverse=True)
-        selected = st.sidebar.selectbox("Chọn tháng:", targets)
+        target_list = sorted(df['Tháng'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn tháng:", target_list)
         filtered_df = df[df['Tháng'] == selected]
     elif view_mode == "Quý":
-        order = df.groupby('Quý_HT')['Thời gian'].min().sort_values(ascending=False).index
-        selected = st.sidebar.selectbox("Chọn quý:", order)
-        filtered_df = df[df['Quý_HT'] == selected]
-    elif view_mode == "6 Tháng":
-        order = df.groupby('Sáu_Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
-        selected = st.sidebar.selectbox("Chọn giai đoạn 6 tháng:", order)
-        filtered_df = df[df['Sáu_Tháng_HT'] == selected]
+        q_order = df.groupby('Quý_Hiển_Thị')['Thời gian'].min().sort_values(ascending=False).index
+        selected = st.sidebar.selectbox("Chọn quý:", q_order)
+        filtered_df = df[df['Quý_Hiển_Thị'] == selected]
     else:
-        targets = sorted(df['Năm'].unique(), reverse=True)
-        selected = st.sidebar.selectbox("Chọn năm:", targets)
+        target_list = sorted(df['Năm'].unique(), reverse=True)
+        selected = st.sidebar.selectbox("Chọn năm:", target_list)
         filtered_df = df[df['Năm'] == selected]
 
     if not filtered_df.empty:
@@ -111,16 +102,18 @@ if uploaded_file is not None:
                 usage = filtered_df['Lưu lượng tổng'].max() - filtered_df['Lưu lượng tổng'].min()
                 st.metric("Nước đã dùng", f"{usage:.1f} m³")
 
-        # 4. BIỂU ĐỒ DIỄN BIẾN
-        st.subheader("📈 Biểu đồ xu hướng diễn biến")
+        # 4. BIỂU ĐỒ DIỄN BIẾN (Sửa lỗi hiển thị sai khoảng thời gian)
+        st.subheader(f"📈 Biểu đồ xu hướng diễn biến")
         metrics = [c for c in cols_to_fix + ['AS_Value'] if c in filtered_df.columns and filtered_df[c].count() > 0]
         selected_m = st.multiselect("Chọn thông số:", metrics, default=[metrics[0]] if metrics else [])
         
         if selected_m:
             if view_mode == "Ngày":
+                # Xem theo ngày thì hiện chi tiết từng phút/giờ
                 chart_data = filtered_df.set_index('Thời gian')[selected_m]
             else:
-                # Đối với Tuần/Tháng/Quý/6 Tháng: Gom theo ngày để biểu đồ dàn trải chính xác
+                # Xem Tuần/Tháng/Quý/Năm: Gom nhóm theo NGÀY để thấy xu hướng cả giai đoạn
+                # Điều này giúp biểu đồ không bị "co cụm" vào 1 ngày duy nhất
                 chart_data = filtered_df.groupby('Ngày')[selected_m].mean()
             
             st.line_chart(chart_data)
