@@ -4,7 +4,7 @@ import json
 from datetime import timedelta
 
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp", layout="wide")
-st.title("📊 Phân tích Dữ liệu Nông nghiệp Đa khung thời gian")
+st.title("📊 Phân tích Dữ liệu Nông nghiệp")
 
 uploaded_file = st.file_uploader("Nạp tệp tin JSON của bạn", type=['json'])
 
@@ -23,28 +23,36 @@ if uploaded_file is not None:
         data = json.load(uploaded_file)
         df = pd.DataFrame(data)
         
-        # 1. CHUẨN HÓA THỜI GIAN
+        # 1. CHUẨN HÓA THỜI GIAN VÀ SỐ LIỆU
         df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
         df = df.dropna(subset=['Thời gian']).sort_values('Thời gian')
         
+        # Ép kiểu số cho các cột quan trọng ngay từ đầu
+        cols_to_fix = ['soil_ASKK', 'Nhiệt Độ', 'Độ ẩm', 'Lưu lượng m2/h', 'Lưu lượng tổng', 'tempKK', 'humiKK', 'EC', 'PH', 'TBEC', 'TBPH']
+        for col in cols_to_fix:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Xử lý riêng cho cột AS nếu có
+        if 'AS' in df.columns:
+            df['AS_Value'] = df['AS'].apply(lambda x: pd.to_numeric(x, errors='coerce') if '/' not in str(x) else parse_time_series(x))
+
+        # Tạo các cột phân loại thời gian
         df['Ngày'] = df['Thời gian'].dt.date
         df['Tháng'] = df['Thời gian'].dt.to_period('M').astype(str)
-        df['Năm'] = df['Thời gian'].dt.year.astype(str)
         
-        # Định dạng Tuần
+        # Các hàm hỗ trợ hiển thị
         def get_week_range(date):
             start = date - timedelta(days=date.weekday())
             end = start + timedelta(days=6)
             return f"Tuần ({start.strftime('%d/%m')} - {end.strftime('%d/%m')})/{start.year}"
         df['Tuần_HT'] = df['Ngày'].apply(get_week_range)
 
-        # Định dạng Quý
         def get_quarter_range(dt):
             q = (dt.month - 1) // 3 + 1
             return f"Quý {q} (Tháng {(q-1)*3+1:02d} - Tháng {q*3:02d})/{dt.year}"
         df['Quý_HT'] = df['Thời gian'].apply(get_quarter_range)
 
-        # Định dạng 6 Tháng
         def get_half_year(dt):
             if dt.month <= 6:
                 return f"6 Tháng đầu năm (Tháng 01 - Tháng 06)/{dt.year}"
@@ -52,15 +60,7 @@ if uploaded_file is not None:
                 return f"6 Tháng cuối năm (Tháng 07 - Tháng 12)/{dt.year}"
         df['Sáu_Tháng_HT'] = df['Thời gian'].apply(get_half_year)
 
-        # 2. CHUẨN HÓA SỐ LIỆU
-        cols_to_fix = ['soil_ASKK', 'Nhiệt Độ', 'Độ ẩm', 'Lưu lượng m2/h', 'Lưu lượng tổng', 'tempKK', 'humiKK', 'EC', 'PH', 'TBEC', 'TBPH']
-        for col in cols_to_fix:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-        if 'AS' in df.columns:
-            df['AS_Value'] = df['AS'].apply(lambda x: pd.to_numeric(x, errors='coerce') if '/' not in str(x) else parse_time_series(x))
-
-        # 3. BỘ LỌC
+        # 2. BỘ LỌC
         st.sidebar.header("Cài đặt hiển thị")
         view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"])
 
@@ -70,31 +70,32 @@ if uploaded_file is not None:
         if view_mode == "Ngày":
             targets = sorted(df['Ngày'].unique(), reverse=True)
             sel_label = st.sidebar.selectbox("Chọn ngày:", targets)
-            filtered_df = df[df['Ngày'] == sel_label]
-        elif view_mode == "Tuần" and 'Tuần_HT' in df.columns:
+            filtered_df = df[df['Ngày'] == sel_label].copy()
+        elif view_mode == "Tuần":
             order = df.groupby('Tuần_HT')['Thời gian'].min().sort_values(ascending=False).index
             sel_label = st.sidebar.selectbox("Chọn tuần:", order)
-            filtered_df = df[df['Tuần_HT'] == sel_label]
+            filtered_df = df[df['Tuần_HT'] == sel_label].copy()
         elif view_mode == "Tháng":
             targets = sorted(df['Tháng'].unique(), reverse=True)
             sel_label = st.sidebar.selectbox("Chọn tháng:", targets)
-            filtered_df = df[df['Tháng'] == sel_label]
-        elif view_mode == "Quý" and 'Quý_HT' in df.columns:
+            filtered_df = df[df['Tháng'] == sel_label].copy()
+        elif view_mode == "Quý":
             order = df.groupby('Quý_HT')['Thời gian'].min().sort_values(ascending=False).index
             sel_label = st.sidebar.selectbox("Chọn quý:", order)
-            filtered_df = df[df['Quý_HT'] == sel_label]
-        elif view_mode == "6 Tháng" and 'Sáu_Tháng_HT' in df.columns:
+            filtered_df = df[df['Quý_HT'] == sel_label].copy()
+        elif view_mode == "6 Tháng":
             order = df.groupby('Sáu_Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
-            sel_label = st.sidebar.selectbox("Chọn giai đoạn 6 tháng:", order)
-            filtered_df = df[df['Sáu_Tháng_HT'] == sel_label]
-        elif view_mode == "Năm":
+            sel_label = st.sidebar.selectbox("Chọn giai đoạn:", order)
+            filtered_df = df[df['Sáu_Tháng_HT'] == sel_label].copy()
+        else:
             targets = sorted(df['Năm'].unique(), reverse=True)
             sel_label = st.sidebar.selectbox("Chọn năm:", targets)
-            filtered_df = df[df['Năm'] == sel_label]
+            filtered_df = df[df['Năm'] == sel_label].copy()
 
-        # 4. HIỂN THỊ
+        # 3. HIỂN THỊ
         if not filtered_df.empty:
             st.subheader(f"📅 Báo cáo: {sel_label}")
+            
             c1, c2, c3, c4 = st.columns(4)
             with c1:
                 if 'soil_ASKK' in filtered_df.columns:
@@ -112,25 +113,27 @@ if uploaded_file is not None:
             with c4:
                 if 'Lưu lượng tổng' in filtered_df.columns:
                     usage = filtered_df['Lưu lượng tổng'].max() - filtered_df['Lưu lượng tổng'].min()
-                    st.metric("Nước đã dùng", f"{usage:.1f} m³")
+                    st.metric("Nước đã dùng", f"{max(0, usage):.1f} m³")
 
-            # 5. BIỂU ĐỒ DIỄN BIẾN (PHẦN ĐÃ SỬA)
+            # 4. BIỂU ĐỒ (SỬA LỖI ĐỨT ĐƯỜNG)
             st.subheader("📈 Biểu đồ xu hướng diễn biến")
             metrics = [c for c in cols_to_fix + ['AS_Value'] if c in filtered_df.columns and filtered_df[c].count() > 0]
             selected_m = st.multiselect("Chọn thông số:", metrics, default=[metrics[0]] if metrics else [])
             
             if selected_m:
                 if view_mode == "Ngày":
-                    # GIỮ NGUYÊN THỜI GIAN CHI TIẾT ĐỂ VẼ ĐƯỜNG THẲNG
-                    chart_data = filtered_df.set_index('Thời gian')[selected_m]
+                    # Tạo trục thời gian liên tục và loại bỏ NaN để nối đường
+                    chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index()
+                    # Loại bỏ các dòng mà tất cả thông số chọn đều rỗng
+                    chart_data = chart_data.dropna(how='all')
                 else:
-                    # CÁC CHẾ ĐỘ DÀI HẠN MỚI GOM NHÓM THEO NGÀY
                     chart_data = filtered_df.groupby('Ngày')[selected_m].mean()
                 
-                st.line_chart(chart_data)
+                # Vẽ biểu đồ với đường kẻ rõ ràng
+                st.line_chart(chart_data, use_container_width=True)
 
-            with st.expander("Bảng dữ liệu chi tiết"):
+            with st.expander("Xem bảng dữ liệu chi tiết"):
                 st.dataframe(filtered_df)
 
     except Exception as e:
-        st.error(f"⚠️ Lỗi xử lý: {e}")
+        st.error(f"⚠️ Đã xảy ra lỗi: {e}")
