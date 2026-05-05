@@ -2,109 +2,92 @@ import streamlit as st
 import pandas as pd
 import json
 
-# Cấu hình giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp", layout="wide")
 st.title("📊 Công cụ Phân tích & Lọc dữ liệu Đa năng")
 
-# Chức năng nạp file
 uploaded_file = st.file_uploader("Nạp tệp tin JSON của bạn", type=['json'])
 
-def parse_time_series(value):
-    """Hàm xử lý các chuỗi dữ liệu phức tạp dạng 'thời gian/giá trị'"""
-    if not value or value == "0" or not isinstance(value, str):
-        return None
-    try:
-        parts = value.strip().split(' ')
-        last_val = parts[-1].split('/')[-1]
-        return float(last_val)
-    except:
-        return None
-
 if uploaded_file is not None:
-    data = json.load(uploaded_file)
-    df = pd.DataFrame(data)
-    
-    # 1. Chuẩn hóa dữ liệu & Ép kiểu số (Quan trọng để không bị trống biểu đồ)
-    df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S')
-    df['Ngày'] = df['Thời gian'].dt.date
-    
-    # Danh sách các cột cần chuyển sang số để vẽ biểu đồ
-    cols_to_fix = ['soil_ASKK', 'Nhiệt Độ', 'Độ ẩm', 'Lưu lượng m2/h', 'tempKK', 'humiKK', 'EC', 'PH']
-    for col in cols_to_fix:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    # Xử lý riêng cho cột Áp suất AS
-    if 'AS' in df.columns:
-        df['AS_Value'] = df['AS'].apply(lambda x: pd.to_numeric(x, errors='coerce') if '/' not in str(x) else parse_time_series(x))
-
-    # 2. Bộ lọc Ngày
-    st.sidebar.header("Bộ lọc dữ liệu")
-    list_days = sorted(df['Ngày'].unique(), reverse=True)
-    selected_date = st.sidebar.selectbox("Chọn ngày cần xem:", list_days)
-
-    if selected_date:
-        filtered_df = df[df['Ngày'] == selected_date].sort_values('Thời gian')
+    try:
+        data = json.load(uploaded_file)
+        df = pd.DataFrame(data)
         
-        st.subheader(f"📅 Phân tích chi tiết ngày: {selected_date}")
+        # CHUẨN HÓA DỮ LIỆU
+        df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
+        df = df.dropna(subset=['Thời gian']) # Loại bỏ dòng không có thời gian
+        df['Ngày'] = df['Thời gian'].dt.date
         
-        # 3. Khu vực Đánh giá thông số (Đa chỉ số)
-        st.markdown("### 📝 Đánh giá chuyên sâu")
-        c1, c2, c3, c4 = st.columns(4)
+        # Chuyển đổi tất cả các cột số tiềm năng
+        numeric_cols = ['soil_ASKK', 'tempKK', 'humiKK', 'Lưu lượng m2/h', 'Nhiệt Độ', 'Độ ẩm', 'EC', 'PH', 'AS']
+        for col in numeric_cols:
+            if col in df.columns:
+                # Ép kiểu số và xử lý các ô trống
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        with c1:
-            if 'soil_ASKK' in filtered_df.columns:
-                val = filtered_df['soil_ASKK'].mean()
-                st.metric("Ánh sáng (Lux)", f"{val:.1f}")
-                if val > 15000: st.warning("☀️ Ánh sáng rất mạnh")
-                elif val < 5000: st.info("☁️ Ánh sáng yếu")
-                else: st.success("✅ Ánh sáng tối ưu")
+        # BỘ LỌC
+        st.sidebar.header("Bộ lọc")
+        list_days = sorted(df['Ngày'].unique(), reverse=True)
+        selected_date = st.sidebar.selectbox("Chọn ngày:", list_days)
 
-        with c2:
-            # Ưu tiên lấy nhiệt độ không khí (tempKK) hoặc nhiệt độ đất
-            t_col = 'tempKK' if 'tempKK' in filtered_df.columns else 'Nhiệt Độ'
-            if t_col in filtered_df.columns:
-                val = filtered_df[t_col].mean()
-                # Kiểm tra nếu nhiệt độ bị nhân 10 (ví dụ 331 thay vì 33.1)
-                if val > 100: val = val / 10 
-                st.metric("Nhiệt độ (°C)", f"{val:.1f}")
-                if val > 35: st.error("🔥 Quá nóng!")
-                elif val < 18: st.info("❄️ Trời lạnh")
-                else: st.success("✅ Nhiệt độ ổn định")
+        if selected_date:
+            filtered_df = df[df['Ngày'] == selected_date].sort_values('Thời gian')
+            
+            # 1. KHU VỰC ĐÁNH GIÁ (Thêm các thông số khác)
+            st.subheader(f"📝 Đánh giá thông số ngày {selected_date}")
+            m1, m2, m3, m4 = st.columns(4)
+            
+            with m1:
+                if 'soil_ASKK' in filtered_df.columns:
+                    val = filtered_df['soil_ASKK'].mean()
+                    st.metric("Ánh sáng trung bình", f"{val:.1f}")
+                    st.caption("☀️ >15k: Mạnh | ☁️ <5k: Yếu")
+            
+            with m2:
+                t_val = filtered_df['tempKK'].mean() if 'tempKK' in filtered_df.columns else filtered_df['Nhiệt Độ'].mean()
+                if not pd.isna(t_val):
+                    # Sửa lỗi nhiệt độ bị nhân 10 trong một số file
+                    if t_val > 100: t_val = t_val / 10
+                    st.metric("Nhiệt độ trung bình", f"{t_val:.1f} °C")
+                    if t_val > 30: st.warning("🌡️ Khá nóng")
+                    else: st.success("🌡️ Mát mẻ")
 
-        with c3:
-            h_col = 'humiKK' if 'humiKK' in filtered_df.columns else 'Độ ẩm'
-            if h_col in filtered_df.columns:
-                val = filtered_df[h_col].mean()
-                st.metric("Độ ẩm (%)", f"{val:.1f}%")
-                if val < 40: st.warning("🌵 Độ ẩm thấp (khô)")
-                else: st.success("✅ Độ ẩm tốt")
+            with m3:
+                h_val = filtered_df['humiKK'].mean() if 'humiKK' in filtered_df.columns else filtered_df['Độ ẩm'].mean()
+                if not pd.isna(h_val):
+                    st.metric("Độ ẩm trung bình", f"{h_val:.1f} %")
+                    if h_val < 50: st.warning("🌵 Độ ẩm thấp")
+                    else: st.info("💧 Độ ẩm tốt")
 
-        with c4:
-            if 'AS_Value' in filtered_df.columns:
-                val = filtered_df['AS_Value'].mean()
-                st.metric("Áp suất (AS)", f"{val:.2f}")
-                if val > 0: st.success("💧 Hệ thống đang vận hành")
-                else: st.info("💤 Hệ thống đang nghỉ")
+            with m4:
+                if 'Lưu lượng m2/h' in filtered_df.columns:
+                    f_val = filtered_df['Lưu lượng m2/h'].mean()
+                    st.metric("Lưu lượng tưới", f"{f_val:.2f} m2/h")
+                    st.success("💧 Đang vận hành")
 
-        # 4. Biểu đồ động (Chọn gì hiện nấy)
-        st.subheader("📈 Biểu đồ diễn biến theo thời gian")
-        
-        # Tự động tìm các cột có dữ liệu số
-        numeric_cols = [c for c in ['soil_ASKK', 'AS_Value', 'Lưu lượng m2/h', 'tempKK', 'humiKK', 'Nhiệt Độ', 'Độ ẩm', 'EC', 'PH'] if c in filtered_df.columns]
-        
-        selected_metrics = st.multiselect(
-            "Bấm vào đây để chọn/thêm thông số muốn xem biểu đồ:",
-            options=numeric_cols,
-            default=[numeric_cols[0]] if numeric_cols else []
-        )
-        
-        if selected_metrics:
-            # Vẽ biểu đồ với trục X là thời gian
-            chart_df = filtered_df.set_index('Thời gian')[selected_metrics]
-            st.line_chart(chart_df)
-        else:
-            st.warning("Vui lòng chọn ít nhất một thông số để hiển thị biểu đồ.")
+            # 2. KHU VỰC BIỂU ĐỒ (Chọn linh hoạt)
+            st.subheader("📈 Biểu đồ diễn biến")
+            
+            # Lấy danh sách các cột thực sự có dữ liệu số để người dùng chọn
+            available_cols = [c for c in numeric_cols if c in filtered_df.columns and not filtered_df[c].isnull().all()]
+            
+            if available_cols:
+                selected_metrics = st.multiselect(
+                    "Chọn thông số muốn xem trên biểu đồ:",
+                    options=available_cols,
+                    default=[available_cols[0]]
+                )
+                
+                if selected_metrics:
+                    # Tạo dataframe riêng cho biểu đồ để tránh lỗi trục tọa độ
+                    chart_data = filtered_df.set_index('Thời gian')[selected_metrics]
+                    st.line_chart(chart_data)
+                else:
+                    st.info("Hãy chọn ít nhất một thông số để xem biểu đồ.")
+            else:
+                st.error("Không tìm thấy dữ liệu số hợp lệ trong ngày này để vẽ biểu đồ.")
 
-        with st.expander("Xem bảng dữ liệu gốc"):
-            st.write(filtered_df)
+            with st.expander("Dữ liệu chi tiết"):
+                st.dataframe(filtered_df)
+                
+    except Exception as e:
+        st.error(f"Lỗi xử lý file: {e}")
