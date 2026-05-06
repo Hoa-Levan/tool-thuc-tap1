@@ -91,7 +91,7 @@ if uploaded_file is not None:
 
         # 5. HIỂN THỊ CHỈ SỐ TỔNG HỢP (METRICS)
         if not filtered_df.empty:
-            st.subheader(f"📝 Đánh giá chuyên sâu: {sel_label}")
+            st.subheader(f"📝 Số liệu trung bình: {sel_label}")
             
             # Tính toán thông minh cho các chỉ số quan trọng
             c1, c2, c3, c4 = st.columns(4)
