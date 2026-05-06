@@ -89,29 +89,20 @@ if uploaded_file is not None:
             sel_label = st.sidebar.selectbox("Chọn năm:", targets)
             filtered_df = df[df['Năm_Col'] == sel_label].copy()
 
-       # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
+      # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
             st.subheader(f"📊 Số liệu trung bình: {sel_label}")
             
-            # Khởi tạo các cột hiển thị
-            # Hàng 1: Các chỉ số cơ bản
+            # Hàng 1: Các chỉ số môi trường & Nước
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC', 'nhiệt độ PH'] if c in filtered_df.columns), None)
+                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC'] if c in filtered_df.columns), None)
                 if t_col:
                     t_val = filtered_df[t_col].mean()
                     if t_val > 150: t_val /= 10
                     st.metric("Nhiệt độ TB", f"{t_val:.1f} °C")
             with c2:
-                humi_col = next((c for c in ['Độ ẩm', 'humiKK'] if c in filtered_df.columns), None)
-                if humi_col:
-                    st.metric("Độ ẩm TB", f"{filtered_df[humi_col].mean():.1f} %")
-            with c3:
-                ph_col = next((c for c in ['PH', 'TBPH', 'ph'] if c in filtered_df.columns), None)
-                if ph_col:
-                    st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
-            with c4:
-                # Ưu tiên hiển thị Nước nếu có dữ liệu, nếu không thì hiện EC
+                # Ưu tiên hiện Nước, nếu không có hiện PH
                 usage = 0.0
                 has_water = False
                 if 'Lưu lượng tổng' in filtered_df.columns:
@@ -123,8 +114,29 @@ if uploaded_file is not None:
                 if has_water:
                     st.metric("Nước đã dùng", f"{usage:.1f} m³")
                 else:
-                    ec_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
-                    if ec_col: st.metric("EC trung bình", f"{filtered_df[ec_col].mean():.1f}")
+                    ph_col = next((c for c in ['PH', 'TBPH'] if c in filtered_df.columns), None)
+                    if ph_col: st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
+            with c3:
+                # TÁCH RIÊNG ĐỘ ẨM KHÔNG KHÍ
+                if 'humiKK' in filtered_df.columns:
+                    st.metric("Độ ẩm KK", f"{filtered_df['humiKK'].mean():.1f} %")
+            with c4:
+                # TÁCH RIÊNG ĐỘ ẨM ĐẤT
+                if 'Độ ẩm' in filtered_df.columns:
+                    st.metric("Độ ẩm Đất", f"{filtered_df['Độ ẩm'].mean():.1f} %")
+
+            # Hàng 2: Dinh dưỡng (N, P, K, EC)
+            st.markdown("---")
+            n_col, p_col, k_col, ec_col = st.columns(4)
+            with n_col:
+                if 'N' in filtered_df.columns: st.metric("Nitơ (N)", f"{filtered_df['N'].mean():.1f}")
+            with p_col:
+                if 'P' in filtered_df.columns: st.metric("Photpho (P)", f"{filtered_df['P'].mean():.1f}")
+            with k_col:
+                if 'K' in filtered_df.columns: st.metric("Kali (K)", f"{filtered_df['K'].mean():.1f}")
+            with ec_col:
+                e_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
+                if e_col: st.metric("EC trung bình", f"{filtered_df[e_col].mean():.1f}")
 
             # Hàng 2: Chỉ số dinh dưỡng (N, P, K) - Chỉ hiện nếu có dữ liệu
             nutrients = [c for c in ['N', 'P', 'K'] if c in filtered_df.columns]
