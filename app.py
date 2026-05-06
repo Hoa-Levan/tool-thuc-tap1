@@ -125,11 +125,13 @@ if uploaded_file is not None:
                 if 'Độ ẩm' in filtered_df.columns:
                     st.metric("Độ ẩm Đất", f"{filtered_df['Độ ẩm'].mean():.1f} %")
 
-            # Hàng 2: Chỉ số dinh dưỡng (N, P, K) - Chỉ hiện nếu có dữ liệu
-            nutrients = [c for c in ['N', 'P', 'K'] if c in filtered_df.columns]
-            if nutrients:
+            # Hàng 2: Chỉ số dinh dưỡng (N, P, K, EC) - Chỉ hiện nếu có dữ liệu
+            # Kiểm tra sự tồn tại của bất kỳ chỉ số dinh dưỡng nào
+            nutrients_list = [c for c in ['N', 'P', 'K', 'TBEC', 'EC'] if c in filtered_df.columns]
+
+            if nutrients_list:
                 st.markdown("---")
-                n_col, p_col, k_col, empty_col = st.columns(4)
+                n_col, p_col, k_col, ec_col = st.columns(4)
                 with n_col:
                     if 'N' in filtered_df.columns: st.metric("Nitơ (N)", f"{filtered_df['N'].mean():.1f}")
                 with p_col:
