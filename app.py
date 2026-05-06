@@ -125,19 +125,6 @@ if uploaded_file is not None:
                 if 'Độ ẩm' in filtered_df.columns:
                     st.metric("Độ ẩm Đất", f"{filtered_df['Độ ẩm'].mean():.1f} %")
 
-            # Hàng 2: Dinh dưỡng (N, P, K, EC)
-            st.markdown("---")
-            n_col, p_col, k_col, ec_col = st.columns(4)
-            with n_col:
-                if 'N' in filtered_df.columns: st.metric("Nitơ (N)", f"{filtered_df['N'].mean():.1f}")
-            with p_col:
-                if 'P' in filtered_df.columns: st.metric("Photpho (P)", f"{filtered_df['P'].mean():.1f}")
-            with k_col:
-                if 'K' in filtered_df.columns: st.metric("Kali (K)", f"{filtered_df['K'].mean():.1f}")
-            with ec_col:
-                e_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
-                if e_col: st.metric("EC trung bình", f"{filtered_df[e_col].mean():.1f}")
-
             # Hàng 2: Chỉ số dinh dưỡng (N, P, K) - Chỉ hiện nếu có dữ liệu
             nutrients = [c for c in ['N', 'P', 'K'] if c in filtered_df.columns]
             if nutrients:
@@ -149,6 +136,9 @@ if uploaded_file is not None:
                     if 'P' in filtered_df.columns: st.metric("Photpho (P)", f"{filtered_df['P'].mean():.1f}")
                 with k_col:
                     if 'K' in filtered_df.columns: st.metric("Kali (K)", f"{filtered_df['K'].mean():.1f}")
+                with ec_col:
+                    e_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
+                    if e_col: st.metric("EC trung bình", f"{filtered_df[e_col].mean():.1f}")
 
             # 6. BIỂU ĐỒ DIỄN BIẾN THEO THỜI GIAN
             st.subheader("📈 Biểu đồ diễn biến")
