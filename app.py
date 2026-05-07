@@ -93,54 +93,70 @@ if uploaded_file is not None:
         if not filtered_df.empty:
             st.subheader(f"📊 Số liệu trung bình: {sel_label}")
             
-            # Hàng 1: Các chỉ số môi trường & Nước
+            # --- HÀNG 1: CÁC CHỈ SỐ MÔI TRƯỜNG CƠ BẢN ---
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC'] if c in filtered_df.columns), None)
+                # Hiện Nhiệt độ (tìm tất cả các loại nhiệt độ có thể có)
+                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC', 'nhiệt độ PH'] if c in filtered_df.columns), None)
                 if t_col:
                     t_val = filtered_df[t_col].mean()
                     if t_val > 150: t_val /= 10
                     st.metric("Nhiệt độ TB", f"{t_val:.1f} °C")
             with c2:
-                # Ưu tiên hiện Nước, nếu không có hiện PH
-                usage = 0.0
-                has_water = False
+                # Hiện Độ ẩm (KK hoặc Đất)
+                h_col = next((c for c in ['humiKK', 'Độ ẩm'] if c in filtered_df.columns), None)
+                if h_col:
+                    label = "Độ ẩm KK" if h_col == 'humiKK' else "Độ ẩm Đất"
+                    st.metric(f"{label} TB", f"{filtered_df[h_col].mean():.1f} %")
+            with c3:
+                # Hiện PH (Ưu tiên TBPH nếu có, không thì PH)
+                ph_col = next((c for c in ['TBPH', 'PH', 'ph'] if c in filtered_df.columns), None)
+                if ph_col:
+                    st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
+            with c4:
+                # Hiện EC (Ưu tiên TBEC nếu có, không thì EC)
+                ec_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
+                if ec_col:
+                    st.metric("EC trung bình", f"{filtered_df[ec_col].mean():.1f}")
+
+            # --- HÀNG 2: CÁC CHỈ SỐ RIÊNG BIỆT (TỰ ĐỘNG HIỆN NẾU CÓ) ---
+            # Danh sách các cột đặc thù của từng file
+            extra_metrics = {
+                'AS': 'Áp suất (AS)',
+                'TDS EC': 'TDS EC',
+                'Điện trở suất EC': 'Điện trở suất',
+                'Độ mặn EC': 'Độ mặn',
+                'Lưu lượng m2/h': 'Lưu lượng tức thời',
+                'N': 'Nitơ (N)',
+                'P': 'Photpho (P)',
+                'K': 'Kali (K)'
+            }
+            
+            # Lọc ra những cột thực sự có trong file đang mở
+            available_extras = [col for col in extra_metrics.keys() if col in filtered_df.columns]
+            
+            if available_extras or ('Lưu lượng tổng' in filtered_df.columns):
+                st.markdown("---")
+                # Tạo các cột động dựa trên số lượng chỉ số tìm thấy
+                cols = st.columns(4) 
+                idx = 0
+                
+                # Ưu tiên hiện "Nước đã dùng" nếu là file Lịch sử nhỏ giọt
                 if 'Lưu lượng tổng' in filtered_df.columns:
                     v = filtered_df['Lưu lượng tổng'].dropna()
                     if not v.empty and v.max() > 0:
                         usage = v.max() - v.min()
-                        has_water = True
+                        cols[idx % 4].metric("Nước đã dùng", f"{usage:.1f} m³")
+                        idx += 1
                 
-                if has_water:
-                    st.metric("Nước đã dùng", f"{usage:.1f} m³")
-                else:
-                    ph_col = next((c for c in ['PH', 'TBPH'] if c in filtered_df.columns), None)
-                    if ph_col: st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
-            with c3:
-                # TÁCH RIÊNG ĐỘ ẨM KHÔNG KHÍ
-                if 'humiKK' in filtered_df.columns:
-                    st.metric("Độ ẩm KK", f"{filtered_df['humiKK'].mean():.1f} %")
-            with c4:
-                # TÁCH RIÊNG ĐỘ ẨM ĐẤT
-                if 'Độ ẩm' in filtered_df.columns:
-                    st.metric("Độ ẩm Đất", f"{filtered_df['Độ ẩm'].mean():.1f} %")
-
-            # Hàng 2: Chỉ số dinh dưỡng (N, P, K, EC) - Chỉ hiện nếu có dữ liệu
-            # Kiểm tra sự tồn tại của bất kỳ chỉ số dinh dưỡng nào
-            nutrients_list = [c for c in ['N', 'P', 'K', 'TBEC', 'EC'] if c in filtered_df.columns]
-
-            if nutrients_list:
-                st.markdown("---")
-                n_col, p_col, k_col, ec_col = st.columns(4)
-                with n_col:
-                    if 'N' in filtered_df.columns: st.metric("Nitơ (N)", f"{filtered_df['N'].mean():.1f}")
-                with p_col:
-                    if 'P' in filtered_df.columns: st.metric("Photpho (P)", f"{filtered_df['P'].mean():.1f}")
-                with k_col:
-                    if 'K' in filtered_df.columns: st.metric("Kali (K)", f"{filtered_df['K'].mean():.1f}")
-                with ec_col:
-                    e_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
-                    if e_col: st.metric("EC trung bình", f"{filtered_df[e_col].mean():.1f}")
+                # Hiện tất cả các chỉ số phụ khác (AS, TDS, Độ mặn, NPK...)
+                for col in available_extras:
+                    val = filtered_df[col].mean()
+                    if pd.notnull(val):
+                        cols[idx % 4].metric(extra_metrics[col], f"{val:.2f}")
+                        idx += 1
+                        # Nếu vượt quá 4 chỉ số, Streamlit sẽ tự động tràn hàng nếu ta xử lý khéo, 
+                        # ở đây ta dùng idx % 4 để quay vòng trong 4 cột.
 
             # 6. BIỂU ĐỒ DIỄN BIẾN THEO THỜI GIAN
             st.subheader("📈 Biểu đồ diễn biến")
