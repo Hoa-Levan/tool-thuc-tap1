@@ -96,13 +96,14 @@ if uploaded_files:
             if view_mode == "Năm": filtered_df = display_df[display_df['Năm_Col'] == sel_label].copy()
             elif view_mode == "Tuần": filtered_df = display_df[display_df['Tuần_HT'] == sel_label].copy()
 
-        # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
+        # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH (Tự động thích ứng AH4 và J)
         if not filtered_df.empty:
             st.subheader(f"📊 Số liệu trung bình: {sel_label}")
             
+            # --- HÀNG 1: CHỈ SỐ CƠ BẢN ---
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC', 'nhiệt độ PH'] if c in filtered_df.columns), None)
+                t_col = next((c for c in ['Nhiệt Độ', 'tempKK', 'nhiệt độ EC'] if c in filtered_df.columns), None)
                 if t_col:
                     t_val = filtered_df[t_col].mean()
                     if t_val > 150: t_val /= 10
@@ -114,54 +115,67 @@ if uploaded_files:
                     st.metric(f"{label} TB", f"{filtered_df[h_col].mean():.1f} %")
             with c3:
                 ph_col = next((c for c in ['TBPH', 'PH', 'ph'] if c in filtered_df.columns), None)
-                if ph_col:
-                    st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
+                if ph_col: st.metric("PH trung bình", f"{filtered_df[ph_col].mean():.2f}")
             with c4:
-                ec_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
-                if ec_col:
-                    st.metric("EC trung bình", f"{filtered_df[ec_col].mean():.1f}")
-
-            # HÀNG 2: CHỈ SỐ RIÊNG BIỆT
-            extra_metrics = {'AS': 'Áp suất (AS)', 'TDS EC': 'TDS EC', 'Điện trở suất EC': 'Điện trở suất', 'Độ mặn EC': 'Độ mặn', 'N': 'Nitơ (N)', 'P': 'Photpho (P)', 'K': 'Kali (K)'}
-            available_extras = [col for col in extra_metrics.keys() if col in filtered_df.columns]
-            
-            if available_extras or ('Lưu lượng tổng' in filtered_df.columns):
-                st.markdown("---")
-                cols = st.columns(4)
-                idx = 0
+                # KIỂM TRA BẢN J (Có lưu lượng) HOẶC AH4 (Hiện EC thay thế)
+                has_water = False
                 if 'Lưu lượng tổng' in filtered_df.columns:
                     v = filtered_df['Lưu lượng tổng'].dropna()
                     if not v.empty and v.max() > 0:
-                        cols[idx % 4].metric("Nước đã dùng", f"{(v.max() - v.min()):.1f} m³")
-                        idx += 1
-                for col in available_extras:
+                        usage = v.max() - v.min()
+                        st.metric("Nước đã dùng (Bản J)", f"{usage:.1f} m³")
+                        has_water = True
+                
+                if not has_water:
+                    ec_col = next((c for c in ['TBEC', 'EC'] if c in filtered_df.columns), None)
+                    if ec_col: st.metric("EC trung bình", f"{filtered_df[ec_col].mean():.1f}")
+
+            # --- HÀNG 2: CHỈ SỐ PHỤ VÀ DINH DƯỠNG ---
+            extra_metrics = {
+                'AS': 'Áp suất (AS)', 
+                'TDS EC': 'TDS EC', 
+                'Độ mặn EC': 'Độ mặn', 
+                'Lưu lượng m2/h': 'Lưu lượng tức thời (J)', # Chỉ hiện ở bản J
+                'N': 'Nitơ (N)', 'P': 'Photpho (P)', 'K': 'Kali (K)'
+            }
+            available_extras = [col for col in extra_metrics.keys() if col in filtered_df.columns]
+            
+            if available_extras:
+                st.markdown("---")
+                cols = st.columns(4)
+                for i, col in enumerate(available_extras):
                     val = filtered_df[col].mean()
                     if pd.notnull(val):
-                        cols[idx % 4].metric(extra_metrics[col], f"{val:.2f}")
-                        idx += 1
+                        cols[i % 4].metric(extra_metrics[col], f"{val:.2f}")
 
             # 6. BIỂU ĐỒ DIỄN BIẾN
             st.subheader("📈 Biểu đồ diễn biến")
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
+            # Loại bỏ các cột không nên vẽ đường (số quá lớn hoặc định danh)
             chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT']]
             
-            selected_m = st.multiselect("Thêm thông số biểu đồ:", chart_metrics, default=[chart_metrics[0]] if chart_metrics else [])
+            selected_m = st.multiselect("Thêm thông số biểu đồ:", chart_metrics, 
+                                        default=[chart_metrics[0]] if chart_metrics else [])
             
             if selected_m:
                 if app_mode == "So sánh đối chiếu" and len(selected_m) == 1:
                     target = selected_m[0]
-                    if view_mode == "Ngày":
-                        chart_data = filtered_df.pivot_table(index='Thời gian', columns='Nguồn', values=target).sort_index().interpolate()
-                    else:
-                        chart_data = filtered_df.pivot_table(index='Ngày', columns='Nguồn', values=target, aggfunc='mean').dropna()
-                    st.info(f"💡 Đang so sánh: **{target}**")
+                    # Pivot để so sánh AH4 vs J hoặc Lịch sử vs Quan trắc
+                    chart_data = filtered_df.pivot_table(
+                        index='Thời gian' if view_mode == "Ngày" else 'Ngày', 
+                        columns='Nguồn', 
+                        values=target,
+                        aggfunc='mean'
+                    ).sort_index()
+                    if view_mode == "Ngày": chart_data = chart_data.interpolate()
+                    st.info(f"💡 Đang so sánh thông số **{target}** giữa các tệp tin đã chọn")
                 else:
                     if view_mode == "Ngày":
                         chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
                     else:
                         chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
+                
                 st.line_chart(chart_data)
-
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
                 st.dataframe(filtered_df)
             st.success("✅ Hệ thống hoạt động ổn định.")
