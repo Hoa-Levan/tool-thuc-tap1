@@ -148,34 +148,32 @@ if uploaded_files:
                     if pd.notnull(val):
                         cols[i % 4].metric(extra_metrics[col], f"{val:.2f}")
 
-            # 6. BIỂU ĐỒ DIỄN BIẾN
+            # 6. BIỂU ĐỒ DIỄN BIẾN (Tự động tách đường theo File)
             st.subheader("📈 Biểu đồ diễn biến")
+            
+            # Lấy danh sách các cột số để chọn
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            # Loại bỏ các cột không nên vẽ đường (số quá lớn hoặc định danh)
             chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT']]
             
-            selected_m = st.multiselect("Thêm thông số biểu đồ:", chart_metrics, 
-                                        default=[chart_metrics[0]] if chart_metrics else [])
+            # Người dùng chọn 1 thông số muốn xem (ví dụ: EC)
+            target = st.selectbox("Chọn thông số hiển thị (đối chiếu giữa các file):", 
+                                  chart_metrics, 
+                                  index=chart_metrics.index('EC') if 'EC' in chart_metrics else 0)
             
-            if selected_m:
-                if app_mode == "So sánh đối chiếu" and len(selected_m) == 1:
-                    target = selected_m[0]
-                    # Pivot để so sánh AH4 vs J hoặc Lịch sử vs Quan trắc
-                    chart_data = filtered_df.pivot_table(
-                        index='Thời gian' if view_mode == "Ngày" else 'Ngày', 
-                        columns='Nguồn', 
-                        values=target,
-                        aggfunc='mean'
-                    ).sort_index()
-                    if view_mode == "Ngày": chart_data = chart_data.interpolate()
-                    st.info(f"💡 Đang so sánh thông số **{target}** giữa các tệp tin đã chọn")
+            if target:
+                # TRƯỜNG HỢP SO SÁNH: Tự động tách mỗi file thành 1 đường
+                if view_mode == "Ngày":
+                    # Vẽ theo thời gian chi tiết, mỗi Nguồn (file) là một đường
+                    chart_data = filtered_df.pivot_table(index='Thời gian', columns='Nguồn', values=target).sort_index()
+                    # Làm mượt đường kẻ để tránh bị đứt đoạn do lệch giây giữa các file
+                    chart_data = chart_data.interpolate(method='linear').fillna(method='ffill').fillna(method='bfill')
                 else:
-                    if view_mode == "Ngày":
-                        chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
-                    else:
-                        chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
-                
+                    # Xem theo Tuần/Tháng/Năm: Gom nhóm theo Ngày để các file có điểm chung trên trục X
+                    chart_data = filtered_df.pivot_table(index='Ngày', columns='Nguồn', values=target, aggfunc='mean').sort_index()
+
+                st.write(f"Đang hiển thị đối chiếu thông số: **{target}**")
                 st.line_chart(chart_data)
+                
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
                 st.dataframe(filtered_df)
             st.success("✅ Hệ thống hoạt động ổn định.")
