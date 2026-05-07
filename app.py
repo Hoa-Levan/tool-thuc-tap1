@@ -182,7 +182,7 @@ if uploaded_file is not None:
                     # Gom nhóm theo ngày cho các chế độ dài hạn
                     chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
                 
-                st.line_chart(chart_data)
+                st.line_chart(chart_data, markers=True)
 
             # 7. CHI TIẾT DỮ LIỆU
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
