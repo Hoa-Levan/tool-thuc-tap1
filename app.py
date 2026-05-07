@@ -163,7 +163,12 @@ if uploaded_file is not None:
             
             # Lấy tất cả cột số trừ cột 'Lưu lượng tổng' (vì số quá lớn làm lệch biểu đồ)
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng']]
+            chart_metrics = [
+                m for m in numeric_cols 
+                if m not in ['Lưu lượng tổng', 'STT'] 
+                and filtered_df[m].notnull().any() # Có ít nhất 1 giá trị không rỗng
+                and (filtered_df[m] != 0).any()    # Có ít nhất 1 giá trị khác 0
+            ]
             
             selected_m = st.multiselect("Bấm vào đây để thêm thông số (PH, TDS, Độ mặn, Nhiệt độ...):", 
                                         chart_metrics, 
