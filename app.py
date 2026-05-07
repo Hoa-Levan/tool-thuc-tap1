@@ -158,31 +158,34 @@ if uploaded_file is not None:
                         # Nếu vượt quá 4 chỉ số, Streamlit sẽ tự động tràn hàng nếu ta xử lý khéo, 
                         # ở đây ta dùng idx % 4 để quay vòng trong 4 cột.
 
-            # 6. BIỂU ĐỒ DIỄN BIẾN THEO THỜI GIAN
+            # 6. BIỂU ĐỒ DIỄN BIẾN
             st.subheader("📈 Biểu đồ diễn biến")
             
-            # Lấy tất cả cột số trừ cột 'Lưu lượng tổng' (vì số quá lớn làm lệch biểu đồ)
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            chart_metrics = [
-                m for m in numeric_cols 
-                if m not in ['Lưu lượng tổng', 'STT'] 
-                and filtered_df[m].notnull().any() # Có ít nhất 1 giá trị không rỗng
-                and (filtered_df[m] != 0).any()    # Có ít nhất 1 giá trị khác 0
-            ]
+            chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT']]
             
-            selected_m = st.multiselect("Bấm vào đây để thêm thông số (PH, TDS, Độ mặn, Nhiệt độ...):", 
-                                        chart_metrics, 
+            selected_m = st.multiselect("Thêm thông số:", chart_metrics, 
                                         default=[chart_metrics[0]] if chart_metrics else [])
             
             if selected_m:
-                if view_mode == "Ngày":
-                    # Đảm bảo nối đường cho biểu đồ ngày
+                # KIỂM TRA SỐ LƯỢNG NGÀY THỰC TẾ TRONG DỮ LIỆU ĐÃ LỌC
+                num_days = filtered_df['Ngày'].nunique()
+
+                if num_days == 1:
+                    # TRƯỜNG HỢP CHỈ CÓ 1 NGÀY: 
+                    # Ghi chú thích và ép biểu đồ vẽ theo Thời gian chi tiết để hiện đường kẻ
+                    single_date = filtered_df['Ngày'].iloc[0]
+                    st.info(f"💡 Chỉ có dữ liệu của ngày **{single_date}**. Hệ thống tự động hiển thị chi tiết theo giờ để có biểu đồ đường kẻ.")
+                    
                     chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
                 else:
-                    # Gom nhóm theo ngày cho các chế độ dài hạn
-                    chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
+                    # TRƯỜNG HỢP CÓ NHIỀU NGÀY: Quay lại logic cũ của bạn
+                    if view_mode == "Ngày":
+                        chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
+                    else:
+                        chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
                 
-                st.line_chart(chart_data, markers=True)
+                st.line_chart(chart_data)
 
             # 7. CHI TIẾT DỮ LIỆU
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
