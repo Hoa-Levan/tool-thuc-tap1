@@ -127,7 +127,7 @@ if uploaded_file is not None:
                 'Điện trở suất EC': 'Điện trở suất',
                 'Độ mặn EC': 'Độ mặn',
                 'Lưu lượng m2/h': 'Lưu lượng tức thời',
-                'N': 'Nitơ 👎',
+                'N': 'Nitơ (N)',
                 'P': 'Photpho (P)',
                 'K': 'Kali (K)'
             }
