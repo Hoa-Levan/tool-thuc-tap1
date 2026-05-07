@@ -47,7 +47,7 @@ if uploaded_file is not None:
         df['Năm_Col'] = df['Thời gian'].dt.year.astype(str)
         
         # 2. XỬ LÝ DỮ LIỆU TẤT CẢ CÁC CỘT (Ép kiểu số & Tách dấu /)
-        exclude_cols = ['Thời gian', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
+        exclude_cols = ['STT', 'Thời gian', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
         for col in df.columns:
             if col not in exclude_cols:
                 df[col] = df[col].apply(extract_value)
