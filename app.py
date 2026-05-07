@@ -175,7 +175,7 @@ if uploaded_file is not None:
                     # TRƯỜNG HỢP CHỈ CÓ 1 NGÀY: 
                     # Ghi chú thích và ép biểu đồ vẽ theo Thời gian chi tiết để hiện đường kẻ
                     single_date = filtered_df['Ngày'].iloc[0]
-                    st.info(f"💡 Chỉ có dữ liệu của ngày **{single_date}**. Hệ thống tự động hiển thị chi tiết theo giờ để có biểu đồ đường kẻ.")
+                    st.info(f"💡 Trong tuần này chỉ có số liệu của ngày **{single_date}**. Hệ thống sẽ chỉ hiển thị số liệu của ngày **{single_date}**.")
                     
                     chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
                 else:
