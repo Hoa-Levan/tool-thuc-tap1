@@ -1,26 +1,33 @@
 import pandas as pd
+import streamlit as st
 
 def get_chart_data(filtered_df, view_mode, selected_m, display_type):
-    # Đảm bảo cột Thời gian là định dạng datetime để resample không lỗi
-    filtered_df['Thời gian'] = pd.to_datetime(filtered_df['Thời gian'])
-    
-    # TRƯỜNG HỢP 1: XEM MỖI LẦN ĐO (Dữ liệu thô - Nhìn thấy mọi răng cưa)
-    if display_type == "Số liệu mỗi lần đo":
-        return filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
+    # Bước 1: Ép kiểu dữ liệu thời gian chuẩn xác
+    df_plot = filtered_df.copy()
+    df_plot['Thời gian'] = pd.to_datetime(df_plot['Thời gian'])
+    df_plot = df_plot.set_index('Thời gian').sort_index()
 
-    # TRƯỜNG HỢP 2: XEM TRUNG BÌNH CỘNG (Làm mượt dữ liệu)
+    # TRƯỜNG HỢP 1: XEM MỖI LẦN ĐO (Dữ liệu gốc, sát file nhất)
+    if display_type == "Số liệu mỗi lần đo":
+        # Không resample, không làm mượt. Giữ nguyên từng điểm đo.
+        return df_plot[selected_m]
+
+    # TRƯỜNG HỢP 2: XEM TRUNG BÌNH CỘNG (Làm mượt để thấy xu hướng)
     num_days = filtered_df['Ngày'].nunique()
 
-    # Nếu xem theo Ngày: Làm mượt bằng cách lấy trung bình mỗi 1 giờ (1H)
-    if view_mode == "Ngày" or (view_mode == "Tuần" and num_days == 1):
-        temp_df = filtered_df.set_index('Thời gian')[selected_m].sort_index()
-        return temp_df.resample('1H').mean().dropna(how='all')
+    try:
+        # Nếu xem theo Ngày hoặc chỉ có 1 ngày dữ liệu: Gom trung bình mỗi 30 phút (30min)
+        if view_mode == "Ngày" or num_days == 1:
+            return df_plot[selected_m].resample('30min').mean().dropna(how='all')
 
-    # Nếu xem theo Giờ: Làm mượt bằng cách lấy trung bình mỗi 5 phút (5min)
-    elif view_mode == "Xem theo Giờ":
-        temp_df = filtered_df.set_index('Thời gian')[selected_m].sort_index()
-        return temp_df.resample('5min').mean().dropna(how='all')
+        # Nếu xem theo Giờ: Gom trung bình mỗi 5 phút (5min)
+        elif view_mode == "Xem theo Giờ":
+            return df_plot[selected_m].resample('5min').mean().dropna(how='all')
 
-    # Nếu xem theo Tuần, Tháng, Năm (nhiều ngày): Gom nhóm trung bình theo Ngày (Logic cũ)
-    else:
-        return filtered_df.groupby('Ngày')[selected_m].mean().sort_index().dropna(how='all')
+        # Nếu xem theo Tuần, Tháng, Năm: Gom theo Ngày (Logic cũ của bạn)
+        else:
+            # Quay lại dùng cột Ngày để group cho chính xác với lịch
+            return filtered_df.groupby('Ngày')[selected_m].mean().sort_index().dropna(how='all')
+    except Exception as e:
+        st.error(f"Lỗi xử lý làm mượt dữ liệu: {e}")
+        return df_plot[selected_m]
