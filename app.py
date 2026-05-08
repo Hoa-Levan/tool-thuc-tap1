@@ -189,7 +189,13 @@ if uploaded_file is not None:
 
             # --- 6. BIỂU ĐỒ DIỄN BIẾN ---
         st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
-        
+
+        if view_mode in ["Quý", "6 Tháng", "Năm"] and not filtered_df.empty:
+                actual_times = pd.to_datetime(filtered_df['Thời gian'])
+                start_dt = actual_times.min().strftime('%d/%m/%Y')
+                end_dt = actual_times.max().strftime('%d/%m/%Y')
+                
+                st.info(f"📅 **Thông tin:** Trong chế độ xem **{view_mode}**, dữ liệu thực tế ghi nhận từ ngày **{start_dt}** đến ngày **{end_dt}**.")
         # Lọc cột số hợp lệ
         numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
         chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
