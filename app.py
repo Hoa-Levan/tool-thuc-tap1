@@ -169,35 +169,38 @@ if uploaded_file is not None:
                         # Nếu vượt quá 4 chỉ số, Streamlit sẽ tự động tràn hàng nếu ta xử lý khéo, 
                         # ở đây ta dùng idx % 4 để quay vòng trong 4 cột.
 
-            # 6. BIỂU ĐỒ DIỄN BIẾN
-            st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
-            
-            numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
-                         and filtered_df[m].notnull().any() and (filtered_df[m] != 0).any()]
-            
-            selected_m = st.multiselect("Thêm thông số:", chart_metrics, 
-                                    default=[chart_metrics[0]] if chart_metrics else [])
-            
-            if selected_m:
-                # KIỂM TRA SỐ LƯỢNG NGÀY THỰC TẾ TRONG DỮ LIỆU ĐÃ LỌC
-                num_days = filtered_df['Ngày'].nunique()
+            # --- 6. BIỂU ĐỒ DIỄN BIẾN ---
+        st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
+        
+        # Bước 1: Lọc danh sách cột để tránh mấy cột "vô duyên" (toàn số 0 hoặc rỗng)
+        numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
+        chart_metrics = [
+            m for m in numeric_cols 
+            if m not in ['Lưu lượng tổng', 'STT'] 
+            and filtered_df[m].notnull().any() 
+            and (filtered_df[m] != 0).any()
+        ]
+        
+        # Bước 2: Cho người dùng chọn thông số muốn xem
+        selected_m = st.multiselect(
+            "Thêm thông số vào biểu đồ:", 
+            chart_metrics, 
+            default=[chart_metrics[0]] if chart_metrics else []
+        )
 
-                if num_days == 1:
-                    # TRƯỜNG HỢP CHỈ CÓ 1 NGÀY: 
-                    # Ghi chú thích và ép biểu đồ vẽ theo Thời gian chi tiết để hiện đường kẻ
-                    single_date = filtered_df['Ngày'].iloc[0]
-                    if view_mode == "Tuần":
-                        st.info(f"💡 Trong tuần này chỉ có số liệu của ngày **{single_date}**. Hệ thống sẽ chỉ hiển thị số liệu của ngày **{single_date}**.")
-                    
-                    chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
-                else:
-                    # TRƯỜNG HỢP CÓ NHIỀU NGÀY: Quay lại logic cũ của bạn
-                    if view_mode == "Ngày":
-                        chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
-                    else:
-                        chart_data = filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
-                
+        if selected_m:
+            # Bước 3: Gọi "Bộ não" từ file display_logic.py để lấy dữ liệu (Trung bình hoặc Mỗi lần đo)
+            # Hàm này sẽ tự xử lý việc: gom nhóm theo Ngày hay để nguyên Thời gian chi tiết
+            chart_data = get_chart_data(filtered_df, view_mode, selected_m, display_type)
+            
+            # Bước 4: Hiện thông báo nhắc nhở nếu xem "Tuần" mà chỉ có 1 ngày dữ liệu
+            num_days = filtered_df['Ngày'].nunique()
+            if view_mode == "Tuần" and num_days == 1:
+                single_date = filtered_df['Ngày'].iloc[0]
+                st.info(f"💡 Trong tuần này chỉ có số liệu của ngày **{single_date}**. Hệ thống sẽ chỉ hiển thị số liệu của ngày **{single_date}**.")
+
+            # Bước 5: Vẽ biểu đồ ra màn hình
+            if chart_data is not None:
                 st.line_chart(chart_data)
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
