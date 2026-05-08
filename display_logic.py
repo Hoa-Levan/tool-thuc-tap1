@@ -1,45 +1,44 @@
 import pandas as pd
-import streamlit as st
 
 def get_chart_data(filtered_df, view_mode, selected_m, display_type):
-    # Bước 1: Chuẩn hóa thời gian và index
     df_plot = filtered_df.copy()
     df_plot['Thời gian'] = pd.to_datetime(df_plot['Thời gian'])
     df_plot = df_plot.set_index('Thời gian').sort_index()
 
-    # --- TRƯỜNG HỢP 1: XEM MỖI LẦN ĐO ---
-    if display_type == "Số liệu mỗi lần đo":
-        # 1. Ngày hoặc Giờ: Giữ nguyên chi tiết nhất
-        if view_mode in ["Ngày", "Xem theo Giờ"]:
+    # --- TRƯỜNG HỢP: SỐ LIỆU THÔ (GIỮ NGUYÊN CẤU TRÚC TỪNG CHẾ ĐỘ XEM) ---
+    if display_type == "Số liệu thô":
+        if view_mode == "Ngày":
             return df_plot[selected_m].fillna(0)
-        
-        # 2. Tuần hoặc Tháng: Lấy mẫu mỗi 30 phút
-        elif view_mode in ["Tuần", "Tháng"]:
+            
+        elif view_mode == "Xem theo Giờ":
+            return df_plot[selected_m].fillna(0)
+            
+        elif view_mode == "Tuần":
             return df_plot[selected_m].resample('30min').first().fillna(0)
             
-        # 3. Quý: Giữ nguyên 1 giờ/lần
+        elif view_mode == "Tháng":
+            return df_plot[selected_m].resample('30min').first().fillna(0)
+            
         elif view_mode == "Quý":
+            # Giữ 1 giờ 1 lần như bạn yêu cầu vì không lag
             return df_plot[selected_m].resample('1h').first().fillna(0)
             
-        # 4. 6 Tháng hoặc Năm: Tăng lên 2 giờ/lần
-        else:
+        elif view_mode == "6 Tháng":
+            # Tăng lên 2 giờ 1 lần để giảm lag
+            return df_plot[selected_m].resample('2h').first().fillna(0)
+            
+        elif view_mode == "Năm":
+            # Tăng lên 2 giờ 1 lần để giảm lag
             return df_plot[selected_m].resample('2h').first().fillna(0)
 
-    # TRƯỜNG HỢP 2: XEM TRUNG BÌNH CỘNG
-    num_days = filtered_df['Ngày'].nunique()
-    try:
-        # Nếu xem theo Ngày: Gom trung bình mỗi 1 tiếng, nếu tiếng đó không có dữ liệu thì hiện 0
-        if view_mode == "Ngày" or num_days == 1:
+    # --- TRƯỜNG HỢP: TRUNG BÌNH CỘNG ---
+    else:
+        if view_mode == "Ngày":
             return df_plot[selected_m].resample('h').mean().fillna(0)
-
-        # Nếu xem theo Giờ: Gom trung bình mỗi 5 phút, nếu không có dữ liệu thì hiện 0
+            
         elif view_mode == "Xem theo Giờ":
             return df_plot[selected_m].resample('5min').mean().fillna(0)
-
-        # Nếu xem theo Tuần, Tháng, Năm (nhiều ngày): Gom theo Ngày
+            
+        # Các chế độ còn lại tính trung bình theo Ngày để biểu đồ mượt hơn
         else:
             return filtered_df.groupby('Ngày')[selected_m].mean().sort_index().fillna(0)
-            
-    except Exception as e:
-        # Nếu có lỗi bất ngờ, cứ hiện dữ liệu gốc và điền 0 vào chỗ rỗng
-        return df_plot[selected_m].fillna(0)
