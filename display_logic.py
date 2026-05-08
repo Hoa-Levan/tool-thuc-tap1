@@ -7,10 +7,19 @@ def get_chart_data(filtered_df, view_mode, selected_m, display_type):
     df_plot['Thời gian'] = pd.to_datetime(df_plot['Thời gian'])
     df_plot = df_plot.set_index('Thời gian').sort_index()
 
-    # TRƯỜNG HỢP 1: XEM MỖI LẦN ĐO (Dữ liệu gốc - Điền 0 vào ô rỗng)
+    # --- TRƯỜNG HỢP 1: XEM MỖI LẦN ĐO (Dữ liệu gốc - Điền 0 vào ô rỗng) ---
     if display_type == "Số liệu mỗi lần đo":
-        # .fillna(0) sẽ biến tất cả các ô None/NaN trong file gốc thành số 0 trên biểu đồ
-        return df_plot[selected_m].fillna(0)
+        # Nếu xem theo Ngày hoặc Giờ: Giữ nguyên chi tiết từng phút
+        if view_mode in ["Ngày", "Xem theo Giờ"]:
+            return df_plot[selected_m].fillna(0)
+        
+        # Nếu xem theo Tuần hoặc Tháng: Lấy mẫu mỗi 30 phút để giảm tải
+        elif view_mode in ["Tuần", "Tháng"]:
+            return df_plot[selected_m].resample('30min').first().fillna(0)
+            
+        # Nếu xem theo Quý, 6 Tháng, Năm: Lấy mẫu 1 giờ/lần để máy cực mượt
+        else:
+            return df_plot[selected_m].resample('1h').first().fillna(0)
 
     # TRƯỜNG HỢP 2: XEM TRUNG BÌNH CỘNG
     num_days = filtered_df['Ngày'].nunique()
