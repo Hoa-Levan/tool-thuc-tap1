@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from datetime import timedelta
 from hourly_logic import handle_hourly_view
+from display_logic import get_chart_data
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
@@ -62,6 +63,13 @@ if uploaded_file is not None:
         st.sidebar.header("Cài đặt hiển thị")
         view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Xem theo Giờ", "Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"])
 
+        st.sidebar.markdown("---")
+        display_type = st.sidebar.radio(
+            "Kiểu hiển thị biểu đồ:",
+            ["Số liệu trung bình cộng", "Số liệu mỗi lần đo"],
+            help="Chọn 'Mỗi lần đo' để xem chi tiết từng điểm dữ liệu thô."
+        )
+        
         filtered_df = pd.DataFrame()
         sel_label = ""
 
@@ -162,18 +170,14 @@ if uploaded_file is not None:
                         # ở đây ta dùng idx % 4 để quay vòng trong 4 cột.
 
             # 6. BIỂU ĐỒ DIỄN BIẾN
-            st.subheader("📈 Biểu đồ diễn biến (số liệu được lấy từ trung bình cộng)")
+            st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
             
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            chart_metrics = [
-                m for m in numeric_cols 
-                if m not in ['Lưu lượng tổng', 'STT'] # Loại bỏ cột không cần vẽ
-                and filtered_df[m].notnull().any()    # Cột phải có ít nhất 1 giá trị (không rỗng)
-                and (filtered_df[m] != 0).any()       # Cột phải có ít nhất 1 giá trị khác 0
-            ]
+            chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
+                         and filtered_df[m].notnull().any() and (filtered_df[m] != 0).any()]
             
             selected_m = st.multiselect("Thêm thông số:", chart_metrics, 
-                                        default=[chart_metrics[0]] if chart_metrics else [])
+                                    default=[chart_metrics[0]] if chart_metrics else [])
             
             if selected_m:
                 # KIỂM TRA SỐ LƯỢNG NGÀY THỰC TẾ TRONG DỮ LIỆU ĐÃ LỌC
