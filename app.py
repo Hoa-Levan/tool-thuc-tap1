@@ -65,7 +65,7 @@ if uploaded_file is not None:
         filtered_df = pd.DataFrame()
         sel_label = ""
 
-        if view_mode == "Xem theo Giờ"
+        if view_mode == "Xem theo Giờ":
             filtered_df, sel_label = handle_hourly_view(df)
         elif view_mode == "Ngày":
             targets = sorted(df['Ngày'].unique(), reverse=True)
