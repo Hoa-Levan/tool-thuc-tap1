@@ -1,26 +1,24 @@
-import streamlit as st
 import pandas as pd
 
 def get_chart_data(filtered_df, view_mode, selected_m, display_type):
     """
-    Logic để lấy dữ liệu biểu đồ:
-    - display_type == "Số liệu trung bình": Dùng groupby (logic cũ)
-    - display_type == "Số liệu mỗi lần đo": Dùng dữ liệu thô theo Thời gian
+    Hàm này lấy dữ liệu biểu đồ dựa trên lựa chọn của người dùng.
     """
-    if not selected_m:
-        return None
+    # KIỂM TRA SỐ LƯỢNG NGÀY THỰC TẾ
+    num_days = filtered_df['Ngày'].nunique()
 
+    # TRƯỜNG HỢP 1: Người dùng muốn xem dữ liệu gốc (Mỗi lần đo)
     if display_type == "Số liệu mỗi lần đo":
-        # Lấy dữ liệu gốc, không gom nhóm, sắp xếp theo Thời gian
-        chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index()
+        return filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
+
+    # TRƯỜNG HỢP 2: Người dùng muốn xem "Số liệu trung bình cộng" (Logic cũ của bạn)
+    if num_days == 1:
+        # Trường hợp chỉ có 1 ngày: ép vẽ theo Thời gian chi tiết để hiện đường kẻ
+        return filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
     else:
-        # Logic "Số liệu trung bình cộng" (Giữ nguyên linh hồn code cũ của bạn)
-        num_days = filtered_df['Ngày'].nunique()
-        
-        if num_days == 1 or view_mode == "Ngày" or view_mode == "Xem theo Giờ":
-            chart_data = filtered_df.set_index('Thời gian')[selected_m].sort_index()
+        # Trường hợp có nhiều ngày:
+        if view_mode == "Ngày" or view_mode == "Xem theo Giờ":
+            return filtered_df.set_index('Thời gian')[selected_m].sort_index().dropna(how='all')
         else:
-            # Gom nhóm trung bình theo ngày cho các chế độ xem dài hạn
-            chart_data = filtered_df.groupby('Ngày')[selected_m].mean().sort_index()
-            
-    return chart_data.dropna(how='all')
+            # Gom nhóm trung bình cho Tuần, Tháng, Năm...
+            return filtered_df.groupby('Ngày')[selected_m].mean().dropna(how='all')
