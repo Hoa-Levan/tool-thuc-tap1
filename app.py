@@ -195,7 +195,7 @@ if uploaded_file is not None:
                 start_dt = actual_times.min().strftime('%d/%m/%Y')
                 end_dt = actual_times.max().strftime('%d/%m/%Y')
                 
-                st.info(f"📅 **Thông tin:** Trong chế độ xem **{view_mode}**, dữ liệu thực tế ghi nhận từ ngày **{start_dt}** đến ngày **{end_dt}**.")
+                st.info(f"📅 **Thông tin:** Trong chế độ xem **{view_mode}**, nhưng trong dữ liệu thực tế chỉ có thể ghi nhận dữ liệu từ ngày **{start_dt}** đến ngày **{end_dt}**.")
         # Lọc cột số hợp lệ
         numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
         chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
