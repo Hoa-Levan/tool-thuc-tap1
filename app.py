@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 from datetime import timedelta
+from hourly_logic import handle_hourly_view
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
@@ -64,7 +65,9 @@ if uploaded_file is not None:
         filtered_df = pd.DataFrame()
         sel_label = ""
 
-        if view_mode == "Ngày":
+        if view_mode == "Xem theo Giờ"
+            filtered_df, sel_label = handle_hourly_view(df)
+        elif view_mode == "Ngày":
             targets = sorted(df['Ngày'].unique(), reverse=True)
             sel_label = st.sidebar.selectbox("Chọn ngày:", targets)
             filtered_df = df[df['Ngày'] == sel_label].copy()
