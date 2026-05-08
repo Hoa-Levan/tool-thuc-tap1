@@ -60,7 +60,7 @@ if uploaded_file is not None:
 
         # 4. BỘ LỌC SIDEBAR
         st.sidebar.header("Cài đặt hiển thị")
-        view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"])
+        view_mode = st.sidebar.selectbox("Chọn chế độ xem:", ["1 Giờ", "Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"])
 
         filtered_df = pd.DataFrame()
         sel_label = ""
