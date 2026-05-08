@@ -162,7 +162,12 @@ if uploaded_file is not None:
             st.subheader("📈 Biểu đồ diễn biến (số liệu được lấy từ trung bình cộng)")
             
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-            chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT']]
+            chart_metrics = [
+                m for m in numeric_cols 
+                if m not in ['Lưu lượng tổng', 'STT'] # Loại bỏ cột không cần vẽ
+                and filtered_df[m].notnull().any()    # Cột phải có ít nhất 1 giá trị (không rỗng)
+                and (filtered_df[m] != 0).any()       # Cột phải có ít nhất 1 giá trị khác 0
+            ]
             
             selected_m = st.multiselect("Thêm thông số:", chart_metrics, 
                                         default=[chart_metrics[0]] if chart_metrics else [])
