@@ -172,35 +172,23 @@ if uploaded_file is not None:
             # --- 6. BIỂU ĐỒ DIỄN BIẾN ---
         st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
         
-        # Bước 1: Lọc danh sách cột để tránh mấy cột "vô duyên" (toàn số 0 hoặc rỗng)
+        # Lọc cột số hợp lệ
         numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-        chart_metrics = [
-            m for m in numeric_cols 
-            if m not in ['Lưu lượng tổng', 'STT'] 
-            and filtered_df[m].notnull().any() 
-            and (filtered_df[m] != 0).any()
-        ]
+        chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
+                         and filtered_df[m].notnull().any() and (filtered_df[m] != 0).any()]
         
-        # Bước 2: Cho người dùng chọn thông số muốn xem
-        selected_m = st.multiselect(
-            "Thêm thông số vào biểu đồ:", 
-            chart_metrics, 
-            default=[chart_metrics[0]] if chart_metrics else []
-        )
+        selected_m = st.multiselect("Bấm vào đây để thêm thông số:", chart_metrics, 
+                                    default=[chart_metrics[0]] if chart_metrics else [])
 
         if selected_m:
-            # Bước 3: Gọi "Bộ não" từ file display_logic.py để lấy dữ liệu (Trung bình hoặc Mỗi lần đo)
-            # Hàm này sẽ tự xử lý việc: gom nhóm theo Ngày hay để nguyên Thời gian chi tiết
             chart_data = get_chart_data(filtered_df, view_mode, selected_m, display_type)
             
-            # Bước 4: Hiện thông báo nhắc nhở nếu xem "Tuần" mà chỉ có 1 ngày dữ liệu
-            num_days = filtered_df['Ngày'].nunique()
-            if view_mode == "Tuần" and num_days == 1:
-                single_date = filtered_df['Ngày'].iloc[0]
-                st.info(f"💡 Trong tuần này chỉ có số liệu của ngày **{single_date}**. Hệ thống sẽ chỉ hiển thị số liệu của ngày **{single_date}**.")
+            # Hiển thị thông báo hỗ trợ người dùng
+            if view_mode == "Tuần" and filtered_df['Ngày'].nunique() == 1:
+                st.info(f"💡 Dữ liệu tuần này chỉ có ngày {filtered_df['Ngày'].iloc[0]}.")
 
-            # Bước 5: Vẽ biểu đồ ra màn hình
             if chart_data is not None:
+                # markers=True giúp bạn thấy rõ từng điểm đo trong file gốc
                 st.line_chart(chart_data)
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
