@@ -88,9 +88,9 @@ if uploaded_file is not None:
                 filtered_df = df[df['Tuần_HT'] == sel_label].copy()
                 
             elif view_mode == "Tháng":
-                order = df.groupby('Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
+                order = df.groupby('Tháng')['Thời gian'].min().sort_values(ascending=False).index
                 sel_label = st.selectbox("Chọn tháng:", order)
-                filtered_df = df[df['Tháng_HT'] == sel_label].copy()
+                filtered_df = df[df['Tháng'] == sel_label].copy()
                 
             elif view_mode == "Quý":
                 order = df.groupby('Quý_HT')['Thời gian'].min().sort_values(ascending=False).index
