@@ -114,7 +114,7 @@ if uploaded_file is not None:
             st.markdown("### 🎨 Tùy chỉnh biểu đồ")
             display_type = st.radio(
                 "Kiểu hiển thị số liệu:",
-                ["Số liệu trung bình cộng", "Số liệu mỗi lần đo"],
+                ["Số liệu trung bình cộng", "Số liệu thô"],
                 help="Chọn 'Mỗi lần đo' để xem chi tiết dữ liệu gốc (ô rỗng sẽ hiện là 0)."
             )
 
