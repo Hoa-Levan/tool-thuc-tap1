@@ -159,7 +159,7 @@ if uploaded_file is not None:
                         # ở đây ta dùng idx % 4 để quay vòng trong 4 cột.
 
             # 6. BIỂU ĐỒ DIỄN BIẾN
-            st.subheader("📈 Biểu đồ diễn biến")
+            st.subheader("📈 Biểu đồ diễn biến (số liệu được lấy từ trung bình cộng)")
             
             numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
             chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT']]
