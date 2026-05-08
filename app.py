@@ -60,41 +60,63 @@ if uploaded_file is not None:
         df['Sáu_Tháng_HT'] = df['Thời gian'].apply(lambda dt: f"6 Tháng {'đầu' if dt.month <= 6 else 'cuối'} năm/{dt.year}")
 
         # --- 4. BỘ LỌC SIDEBAR ---
-with st.sidebar:
-    st.header("🔍 Bộ lọc dữ liệu")
-    
-    # GOM NHÓM 1: CHỌN CHẾ ĐỘ VÀ THỜI GIAN (Nằm chung một chỗ ở trên)
-    view_mode = st.selectbox(
-        "Chọn chế độ xem:", 
-        ["Ngày", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm", "Xem theo Giờ"]
-    )
-    
-    filtered_df = pd.DataFrame()
-    sel_label = ""
+        with st.sidebar:
+            st.header("🔍 Bộ lọc dữ liệu")
+            
+            # --- NHÓM 1: CHỌN THỜI GIAN (Gần nhau để thẩm mỹ) ---
+            view_mode = st.selectbox(
+                "Chọn chế độ xem:", 
+                ["Ngày", "Xem theo Giờ", "Tuần", "Tháng", "Quý", "6 Tháng", "Năm"]
+            )
+            
+            filtered_df = pd.DataFrame()
+            sel_label = ""
 
-    # Logic chọn Ngày/Tuần/Giờ... (Giữ nguyên logic lọc của bạn)
-    if view_mode == "Xem theo Giờ":
-        filtered_df, sel_label = handle_hourly_view(df) # Gọi từ hourly_logic.py
-    elif view_mode == "Ngày":
-        targets = sorted(df['Ngày'].unique(), reverse=True)
-        sel_label = st.sidebar.selectbox("Chọn ngày:", targets)
-        filtered_df = df[df['Ngày'] == sel_label].copy()
-    elif view_mode == "Tuần":
-        order = df.groupby('Tuần_HT')['Thời gian'].min().sort_values(ascending=False).index
-        sel_label = st.sidebar.selectbox("Chọn tuần:", order)
-        filtered_df = df[df['Tuần_HT'] == sel_label].copy()
-    # ... (Các elif cho Tháng, Năm tương tự code cũ của bạn)
+            # Logic hiển thị bộ chọn dựa trên view_mode
+            if view_mode == "Xem theo Giờ":
+                # Gọi logic từ file hourly_logic.py
+                filtered_df, sel_label = handle_hourly_view(df)
+                
+            elif view_mode == "Ngày":
+                targets = sorted(df['Ngày'].unique(), reverse=True)
+                sel_label = st.selectbox("Chọn ngày:", targets)
+                filtered_df = df[df['Ngày'] == sel_label].copy()
+                
+            elif view_mode == "Tuần":
+                order = df.groupby('Tuần_HT')['Thời gian'].min().sort_values(ascending=False).index
+                sel_label = st.selectbox("Chọn tuần:", order)
+                filtered_df = df[df['Tuần_HT'] == sel_label].copy()
+                
+            elif view_mode == "Tháng":
+                order = df.groupby('Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
+                sel_label = st.selectbox("Chọn tháng:", order)
+                filtered_df = df[df['Tháng_HT'] == sel_label].copy()
+                
+            elif view_mode == "Quý":
+                order = df.groupby('Quý_HT')['Thời gian'].min().sort_values(ascending=False).index
+                sel_label = st.selectbox("Chọn quý:", order)
+                filtered_df = df[df['Quý_HT'] == sel_label].copy()
+                
+            elif view_mode == "6 Tháng":
+                order = df.groupby('Sáu_Tháng_HT')['Thời gian'].min().sort_values(ascending=False).index
+                sel_label = st.selectbox("Chọn giai đoạn 6 tháng:", order)
+                filtered_df = df[df['Sáu_Tháng_HT'] == sel_label].copy()
+                
+            elif view_mode == "Năm":
+                targets = sorted(df['Năm_Col'].unique(), reverse=True)
+                sel_label = st.selectbox("Chọn năm:", targets)
+                filtered_df = df[df['Năm_Col'] == sel_label].copy()
 
-    # --- KHOẢNG CÁCH THẨM MỸ ---
-    st.markdown("---") # Đường kẻ ngăn cách rõ rệt
-    
-    # GOM NHÓM 2: CẤU HÌNH BIỂU ĐỒ (Nằm ở một "góc riêng" phía dưới)
-    with st.expander("🎨 Tùy chỉnh biểu đồ", expanded=True):
-        display_type = st.radio(
-            "Kiểu hiển thị:",
-            ["Số liệu trung bình cộng", "Số liệu mỗi lần đo"],
-            help="Chọn 'Mỗi lần đo' để xem chi tiết từng điểm dữ liệu thô từ file."
-        )
+            # --- KHOẢNG CÁCH NGĂN CÁCH ---
+            st.markdown("---")
+            
+            # --- NHÓM 2: TÙY CHỈNH BIỂU ĐỒ (Ở một góc riêng phía dưới) ---
+            st.markdown("### 🎨 Tùy chỉnh biểu đồ")
+            display_type = st.radio(
+                "Kiểu hiển thị số liệu:",
+                ["Số liệu trung bình cộng", "Số liệu mỗi lần đo"],
+                help="Chọn 'Mỗi lần đo' để xem chi tiết dữ liệu gốc (ô rỗng sẽ hiện là 0)."
+            )
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
