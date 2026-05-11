@@ -119,7 +119,7 @@ if uploaded_file is not None:
                 ["Số liệu trung bình cộng", "Số liệu thô"],
                 help="Chọn 'Mỗi lần đo' để xem chi tiết dữ liệu gốc (ô rỗng sẽ hiện là 0)."
             )
-            filtered_df, current_zone = handle_zone_selection(df, filtered_df)
+            filtered_df, current_zone, column_order = handle_zone_selection(df, filtered_df)
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
@@ -249,3 +249,7 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"⚠️ Đã xảy ra lỗi: {e}")
+
+# 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
+with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
+    st.dataframe(filtered_df[column_order])
