@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+import plotly.express as px
 from datetime import timedelta
 from hourly_logic import handle_hourly_view
 from display_logic import get_chart_data
@@ -214,7 +215,12 @@ if uploaded_file is not None:
                     st.info(f"💡 Dữ liệu tuần này chỉ có của ngày {filtered_df['Ngày'].iloc[0]}.")
 
             if chart_data is not None:
-                st.line_chart(chart_data)
+                fig = px.line(chart_data, 
+                      labels={"value": "Giá trị", "Thời gian": "Mốc đo"},
+                      template="plotly_white")
+                fig.update_traces(hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}')
+        
+        st.plotly_chart(fig, use_container_width=True)
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
