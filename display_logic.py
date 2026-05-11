@@ -4,6 +4,8 @@ def get_chart_data(filtered_df, view_mode, selected_m, display_type):
     df_plot = filtered_df.copy()
     df_plot['Thời gian'] = pd.to_datetime(df_plot['Thời gian'])
     df_plot = df_plot.set_index('Thời gian').sort_index()
+    
+    is_single_day = filtered_df['Ngày'].nunique() == 1
 
     # --- TRƯỜNG HỢP: SỐ LIỆU THÔ (GIỮ NGUYÊN CẤU TRÚC TỪNG CHẾ ĐỘ XEM) ---
     if display_type == "Số liệu thô":
@@ -14,9 +16,11 @@ def get_chart_data(filtered_df, view_mode, selected_m, display_type):
             return df_plot[selected_m].fillna(0)
             
         elif view_mode == "Tuần":
+            if is_single_day: return df_plot[selected_m].fillna(0)
             return df_plot[selected_m].resample('30min').first().fillna(0)
             
         elif view_mode == "Tháng":
+            if is_single_day: return df_plot[selected_m].fillna(0)
             return df_plot[selected_m].resample('30min').first().fillna(0)
             
         elif view_mode == "Quý":
@@ -41,4 +45,7 @@ def get_chart_data(filtered_df, view_mode, selected_m, display_type):
             
         # Các chế độ còn lại tính trung bình theo Ngày để biểu đồ mượt hơn
         else:
+            if is_single_day:
+                return df_plot[selected_m].resample('h').mean().fillna(0)
             return filtered_df.groupby('Ngày')[selected_m].mean().sort_index().fillna(0)
+    
