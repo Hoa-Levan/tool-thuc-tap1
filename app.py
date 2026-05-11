@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import timedelta
 from hourly_logic import handle_hourly_view
 from display_logic import get_chart_data
+from zone_logic import handle_zone_selection
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
@@ -118,6 +119,7 @@ if uploaded_file is not None:
                 ["Số liệu trung bình cộng", "Số liệu thô"],
                 help="Chọn 'Mỗi lần đo' để xem chi tiết dữ liệu gốc (ô rỗng sẽ hiện là 0)."
             )
+            filtered_df, current_zone = handle_zone_selection(df, filtered_df)
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
