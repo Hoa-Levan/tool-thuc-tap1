@@ -208,11 +208,12 @@ if uploaded_file is not None:
             chart_data = get_chart_data(filtered_df, view_mode, selected_m, display_type)
             
             # Hiển thị thông báo hỗ trợ người dùng
-            if view_mode == "Tuần" and filtered_df['Ngày'].nunique() == 1:
-                st.info(f"💡 Dữ liệu tuần này chỉ có ngày {filtered_df['Ngày'].iloc[0]}.")
+            if view_mode == "Tuần" and not filtered_df.empty:
+                # Kiểm tra số lượng ngày thực tế có trong dữ liệu gốc
+                if filtered_df['Ngày'].nunique() == 1:
+                    st.info(f"💡 Dữ liệu tuần này chỉ có ngày {filtered_df['Ngày'].iloc[0]}.")
 
             if chart_data is not None:
-                # markers=True giúp bạn thấy rõ từng điểm đo trong file gốc
                 st.line_chart(chart_data)
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
