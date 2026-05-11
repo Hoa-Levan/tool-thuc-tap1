@@ -211,7 +211,7 @@ if uploaded_file is not None:
             if view_mode == "Tuần" and not filtered_df.empty:
                 # Kiểm tra số lượng ngày thực tế có trong dữ liệu gốc
                 if filtered_df['Ngày'].nunique() == 1:
-                    st.info(f"💡 Dữ liệu tuần này chỉ có ngày {filtered_df['Ngày'].iloc[0]}.")
+                    st.info(f"💡 Dữ liệu tuần này chỉ có của ngày {filtered_df['Ngày'].iloc[0]}.")
 
             if chart_data is not None:
                 st.line_chart(chart_data)
