@@ -220,7 +220,7 @@ if uploaded_file is not None:
                       template="plotly_white")
                 fig.update_traces(hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}')
         
-        st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
