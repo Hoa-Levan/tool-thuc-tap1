@@ -190,7 +190,7 @@ if uploaded_file is not None:
             # --- 6. BIỂU ĐỒ DIỄN BIẾN ---
         st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
 
-        if view_mode in ["Quý", "6 Tháng", "Năm"] and not filtered_df.empty:
+        if view_mode in ["Tháng", "Quý", "6 Tháng", "Năm"] and not filtered_df.empty:
                 actual_times = pd.to_datetime(filtered_df['Thời gian'])
                 start_dt = actual_times.min().strftime('%d/%m/%Y')
                 end_dt = actual_times.max().strftime('%d/%m/%Y')
