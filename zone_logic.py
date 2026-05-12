@@ -17,7 +17,12 @@ def handle_zone_selection(df, filtered_df):
         )
         
         if selected_zone != "Tất cả":
+            # Bước 1: Lấy TOÀN BỘ dữ liệu của khu này từ DF gốc (bỏ qua filtered_df đang bị kẹt ở ngày cũ)
             full_zone_df = df[df[zone_col].astype(str).str.strip() == selected_zone].copy()
+            # Bước 2: Cập nhật lại filtered_df để hiển thị
+            filtered_df = full_zone_df
+            # Bước 3: Thông báo cho người dùng biết họ đang xem toàn bộ lịch sử khu đó
+            st.sidebar.info(f"📅 Đang hiển thị tất cả ngày có dữ liệu của {selected_zone}")
             
             if len(full_zone_df) > 200: # Giới hạn xuống 500 điểm để cực mượt
                 step = len(full_zone_df) // 200
