@@ -124,7 +124,8 @@ if uploaded_file is not None:
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
-            st.subheader(f"📊 Số liệu trung bình: {sel_label}")
+            display_label = sel_label if current_zone == "Tất cả" else f"Tất cả lịch sử khu {current_zone}"
+            st.subheader(f"📊 Số liệu trung bình: {display_label}")
             
             # --- HÀNG 1: CÁC CHỈ SỐ MÔI TRƯỜNG CƠ BẢN ---
             c1, c2, c3, c4 = st.columns(4)
