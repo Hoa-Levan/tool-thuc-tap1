@@ -17,15 +17,10 @@ def handle_zone_selection(df, filtered_df):
         )
         
         if selected_zone != "Tất cả":
-            # 1. Lấy toàn bộ dữ liệu của khu đó
             full_zone_df = df[df[zone_col].astype(str).str.strip() == selected_zone].copy()
             
-            # 2. TỐI ƯU HÓA BIỂU ĐỒ: Nếu dữ liệu quá lớn ( > 1000 dòng), ta lấy mẫu
-            # Điều này giúp biểu đồ mượt hơn mà bảng dữ liệu chi tiết vẫn đầy đủ
-            if len(full_zone_df) > 1000:
-                st.sidebar.warning(f"⚠️ Dữ liệu khu vực quá lớn ({len(full_zone_df)} dòng). Đang tối ưu hóa biểu đồ...")
-                # Lấy mẫu cách quãng (ví dụ 10 dòng lấy 1 dòng) để vẽ biểu đồ nhanh hơn
-                step = len(full_zone_df) // 1000
+            if len(full_zone_df) > 750: # Giới hạn xuống 500 điểm để cực mượt
+                step = len(full_zone_df) // 750
                 filtered_df = full_zone_df.iloc[::step].copy()
             else:
                 filtered_df = full_zone_df
