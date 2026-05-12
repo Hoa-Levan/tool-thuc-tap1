@@ -7,23 +7,32 @@ def handle_zone_selection(df, filtered_df):
         st.sidebar.markdown("---")
         st.sidebar.subheader("📍 Lọc theo Khu vực")
         
-        # 1. Luôn hiện đầy đủ danh sách khu từ file gốc (df)
         available_zones = df[zone_col].dropna().unique().tolist()
         list_zones = ["Tất cả"] + sorted([str(z).strip() for z in available_zones])
         
         selected_zone = st.sidebar.selectbox(
             "Chọn khu tưới cần xem:", 
             list_zones,
-            help="Nếu chọn một khu cụ thể, hệ thống sẽ ưu tiên hiện tất cả lịch sử của khu đó."
+            help="Ưu tiên hiện lịch sử của khu đã chọn."
         )
         
-        # 2. LOGIC ƯU TIÊN: 
         if selected_zone != "Tất cả":
-            # ÉP hiện toàn bộ số liệu của khu này, bỏ qua filtered_df (thời gian) trước đó
-            filtered_df = df[df[zone_col].astype(str).str.strip() == selected_zone].copy()
-            st.sidebar.success(f"✨ Đang ưu tiên hiện toàn bộ dữ liệu của: {selected_zone}")
+            # 1. Lấy toàn bộ dữ liệu của khu đó
+            full_zone_df = df[df[zone_col].astype(str).str.strip() == selected_zone].copy()
+            
+            # 2. TỐI ƯU HÓA BIỂU ĐỒ: Nếu dữ liệu quá lớn ( > 1000 dòng), ta lấy mẫu
+            # Điều này giúp biểu đồ mượt hơn mà bảng dữ liệu chi tiết vẫn đầy đủ
+            if len(full_zone_df) > 1000:
+                st.sidebar.warning(f"⚠️ Dữ liệu khu vực quá lớn ({len(full_zone_df)} dòng). Đang tối ưu hóa biểu đồ...")
+                # Lấy mẫu cách quãng (ví dụ 10 dòng lấy 1 dòng) để vẽ biểu đồ nhanh hơn
+                step = len(full_zone_df) // 1000
+                filtered_df = full_zone_df.iloc[::step].copy()
+            else:
+                filtered_df = full_zone_df
+                
+            st.sidebar.success(f"✨ Đã lọc xong khu: {selected_zone}")
         
-        # 3. Xử lý thứ tự cột hiển thị (giữ nguyên logic bạn đã có)
+        # 3. Xử lý thứ tự cột (Giữ nguyên)
         time_related_cols = [zone_col, 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
         all_cols = filtered_df.columns.tolist()
         lead_cols = [c for c in time_related_cols if c in all_cols]
