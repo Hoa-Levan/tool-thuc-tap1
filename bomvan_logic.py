@@ -42,10 +42,10 @@ def process_device_columns(df):
     
     # Xử lý cho cột Bơm
     if 'Bơm' in new_df.columns:
-        new_df['Trạng thái Bơm'] = new_df['Bơm'].apply(lambda x: parse_device_status(x, "Bơm"))
+        new_df['Bơm bật'] = new_df['Bơm'].apply(lambda x: parse_device_status(x, "Bơm"))
     
     # Xử lý cho cột Van
     if 'Van' in new_df.columns:
-        new_df['Trạng thái Van'] = new_df['Van'].apply(lambda x: parse_device_status(x, "Van"))
+        new_df['Van bật'] = new_df['Van'].apply(lambda x: parse_device_status(x, "Van"))
         
     return new_df
