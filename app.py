@@ -221,6 +221,7 @@ if uploaded_file is not None:
                 fig = px.line(chart_data, 
                       labels={"value": "Giá trị", "Thời gian": "Mốc đo"},
                       template="plotly_white")
+                      render_mode="webgl")
                 fig.update_traces(hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}')
                 fig.update_traces(mode='lines+markers', marker=dict(size=8))
         
