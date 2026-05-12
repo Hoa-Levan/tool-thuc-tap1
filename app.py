@@ -119,6 +119,7 @@ if uploaded_file is not None:
                 ["Số liệu trung bình cộng", "Số liệu thô"],
                 help="Chọn 'Mỗi lần đo' để xem chi tiết dữ liệu gốc (ô rỗng sẽ hiện là 0)."
             )
+            # Tìm đoạn code gọi handle_zone_selection và sửa thành:
             filtered_df, current_zone, column_order = handle_zone_selection(df, filtered_df)
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
@@ -227,7 +228,7 @@ if uploaded_file is not None:
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
                 # Danh sách các cột thời gian muốn đưa lên trước
-                time_related_cols = ['Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
+                time_related_cols = ['Tên khu', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
                 
                 # Lấy danh sách tất cả các cột hiện có trong filtered_df
                 all_cols = filtered_df.columns.tolist()
@@ -250,6 +251,4 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"⚠️ Đã xảy ra lỗi: {e}")
 
-# 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
-with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
-    st.dataframe(filtered_df[column_order])
+)
