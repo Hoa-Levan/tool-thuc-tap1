@@ -264,7 +264,7 @@ if uploaded_file is not None:
             
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
                 # Danh sách các cột thời gian muốn đưa lên trước
-                time_related_cols = ['Tên khu', 'Ngày', 'Trạng thái', 'Phương thức hoạt động', 'Người điều khiển', 'Trạng thái Bơm', 'Trạng thái Van']
+                time_related_cols = ['Tên khu', 'Ngày', 'Trạng thái', 'Phương thức hoạt động', 'Người điều khiển']
                 
                 # Lấy danh sách tất cả các cột hiện có trong filtered_df
                 all_cols = filtered_df.columns.tolist()
