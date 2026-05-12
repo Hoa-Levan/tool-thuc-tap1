@@ -15,26 +15,25 @@ uploaded_file = st.file_uploader("Nạp tệp tin JSON của bạn", type=['json
 
 # HÀM XỬ LÝ CHUỖI PHỨC TẠP: Tách giá trị đứng sau dấu "/"
 def extract_value(val):
-    if val is None or val == "" or val == "0":
-        return None
-    if isinstance(val, (int, float)):
-        return float(val)
-    if isinstance(val, str):
-        if '/' in val:
-            try:
-                # Tách lấy cụm cuối cùng trong chuỗi và lấy số sau dấu /
-                parts = val.strip().split(' ')
-                last_part = parts[-1] 
-                if '/' in last_part:
-                    return float(last_part.split('/')[-1])
-            except:
-                return None
-        else:
-            try:
-                return float(val)
-            except:
-                return None
-    return None
+    if pd.isna(val) or val == "": 
+        return 0.0
+    
+    val_str = str(val).strip()
+    
+    # Xử lý trường hợp có dấu '/' (như EC/PH hoặc lỗi định dạng rác)
+    if "/" in val_str:
+        try:
+            # Chỉ lấy phần tử cuối cùng sau dấu gạch chéo
+            parts = val_str.split('/')
+            return float(parts[-1])
+        except:
+            return 0.0
+            
+    # Xử lý trường hợp số thuần túy
+    try:
+        return float(val_str)
+    except:
+        return 0.0
 
 if uploaded_file is not None:
     try:
