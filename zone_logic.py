@@ -13,7 +13,7 @@ def handle_zone_selection(df, filtered_df):
         selected_zone = st.sidebar.selectbox("Chọn khu tưới cần xem:", list_zones)
         
         if selected_zone != "Tất cả":
-            filtered_df = filtered_df[filtered_df[zone_col].astype(str) == selected_zone].copy()
+            filtered_df = filtered_df[filtered_df[zone_col].astype(str).str.strip() == selected_zone.strip()].copy()
             
         # Tự động xử lý thứ tự cột để xuất ra bảng
         time_related_cols = [zone_col, 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
