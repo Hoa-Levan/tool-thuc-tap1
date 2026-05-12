@@ -15,7 +15,7 @@ def handle_zone_selection(df, filtered_df):
         if selected_zone != "Tất cả":
             filtered_df = filtered_df[filtered_df[zone_col].astype(str) == selected_zone].copy()
             
-        # --- TẠO DANH SÁCH THỨ TỰ CỘT ---
+        # Tự động xử lý thứ tự cột để xuất ra bảng
         time_related_cols = [zone_col, 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
         all_cols = filtered_df.columns.tolist()
         lead_cols = [c for c in time_related_cols if c in all_cols]
@@ -23,8 +23,8 @@ def handle_zone_selection(df, filtered_df):
         
         column_order = lead_cols + ['Thời gian'] + remaining_cols
         
-        # TRẢ VỀ ĐỦ 3 GIÁ TRỊ
+        # TRẢ VỀ ĐỦ 3 GIÁ TRỊ: dữ liệu, tên khu, và thứ tự cột
         return filtered_df, selected_zone, column_order
     else:
-        # Trường hợp không có cột "Tên khu", trả về toàn bộ cột hiện có
+        # Nếu không có cột "Tên khu", trả về toàn bộ cột hiện có làm thứ tự mặc định
         return filtered_df, "Toàn hệ thống", filtered_df.columns.tolist()
