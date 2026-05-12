@@ -194,39 +194,67 @@ if uploaded_file is not None:
             # --- 6. BIỂU ĐỒ DIỄN BIẾN ---
         st.subheader(f"📈 Biểu đồ diễn biến ({display_type})")
 
+        # Logic hiển thị thông báo khoảng thời gian thực tế
         if view_mode in ["Tháng", "Quý", "6 Tháng", "Năm"] and not filtered_df.empty:
-                actual_times = pd.to_datetime(filtered_df['Thời gian'])
-                start_dt = actual_times.min().strftime('%d/%m/%Y')
-                end_dt = actual_times.max().strftime('%d/%m/%Y')
-                
-                st.info(f"📅 **Thông tin:** Trong chế độ xem **{view_mode}**, nhưng trong dữ liệu thực tế chỉ có thể ghi nhận dữ liệu từ ngày **{start_dt}** đến ngày **{end_dt}**.")
-        # Lọc cột số hợp lệ
+            actual_times = pd.to_datetime(filtered_df['Thời gian'])
+            start_dt = actual_times.min().strftime('%d/%m/%Y')
+            end_dt = actual_times.max().strftime('%d/%m/%Y')
+            st.info(f"📅 **Thông tin:** Trong chế độ xem **{view_mode}**, dữ liệu thực tế ghi nhận từ ngày **{start_dt}** đến ngày **{end_dt}**.")
+
+        # Lọc danh sách cột số hợp lệ để vẽ biểu đồ
         numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
-        chart_metrics = [m for m in numeric_cols if m not in ['Lưu lượng tổng', 'STT'] 
-                         and filtered_df[m].notnull().any() and (filtered_df[m] != 0).any()]
+        chart_metrics = [
+            m for m in numeric_cols 
+            if m not in ['Lưu lượng tổng', 'STT'] 
+            and filtered_df[m].notnull().any() 
+            and (filtered_df[m] != 0).any()
+        ]
         
-        selected_m = st.multiselect("Bấm vào đây để thêm thông số:", chart_metrics, 
-                                    default=[chart_metrics[0]] if chart_metrics else [])
+        # Chọn thông số hiển thị
+        selected_m = st.multiselect(
+            "Bấm vào đây để thêm thông số:", 
+            chart_metrics, 
+            default=[chart_metrics[0]] if chart_metrics else []
+        )
 
         if selected_m:
+            # Lấy dữ liệu đã qua xử lý để vẽ biểu đồ
             chart_data = get_chart_data(filtered_df, view_mode, selected_m, display_type)
             
-            # Hiển thị thông báo hỗ trợ người dùng
+            # Thông báo hỗ trợ nếu xem theo Tuần nhưng chỉ có 1 ngày dữ liệu
             if view_mode == "Tuần" and not filtered_df.empty:
-                # Kiểm tra số lượng ngày thực tế có trong dữ liệu gốc
                 if filtered_df['Ngày'].nunique() == 1:
                     st.info(f"💡 Dữ liệu tuần này chỉ có của ngày {filtered_df['Ngày'].iloc[0]}.")
 
-            if chart_data is not None:
-                fig = px.line(chart_data, 
-                      labels={"value": "Giá trị", "Thời gian": "Mốc đo"},
-                      template="plotly_white")
-                      render_mode="webgl"
+            # Kiểm tra và tiến hành vẽ biểu đồ
+            if chart_data is not None and not chart_data.empty:
+                # Tạo đối tượng biểu đồ với render_mode="webgl" để chống lag
+                fig = px.line(
+                    chart_data, 
+                    labels={"value": "Giá trị", "Thời gian": "Mốc đo"},
+                    template="plotly_white",
+                    render_mode="webgl"
                 )
-                fig.update_traces(hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}')
-                fig.update_traces(mode='lines+markers', marker=dict(size=8))
+
+                # Cấu hình hiển thị: 
+                # - 'lines+markers': giúp thấy rõ các điểm Bật/Tắt ngay cả khi trùng giá trị
+                # - hovertemplate: định dạng ngày giờ và số thập phân khi rê chuột
+                fig.update_traces(
+                    mode='lines+markers', 
+                    marker=dict(size=8),
+                    hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}'
+                )
+
+                # Tối ưu hóa layout: tăng tốc độ phản hồi khi di chuyển chuột
+                fig.update_layout(
+                    hovermode='x unified',
+                    margin=dict(l=0, r=0, t=30, b=0)
+                )
         
+                # Hiển thị biểu đồ lên Streamlit
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("⚠️ Không có dữ liệu phù hợp để hiển thị biểu đồ.")
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
