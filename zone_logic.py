@@ -38,6 +38,7 @@ def handle_zone_selection(df, filtered_df):
                 min_d = filtered_df['Ngày'].min()
                 max_d = filtered_df['Ngày'].max()
                 st.sidebar.success(f"📅 Hiện dữ liệu {selected_zone}: \n{min_d} đến {max_d}")
+                st.sidebar.success(f"⚠️ Các điều chỉnh thời gian ở trên không có tác dụng cho mục này")
             else:
                 st.sidebar.warning(f"⚠️ Khu {selected_zone} không có dữ liệu.")
         
