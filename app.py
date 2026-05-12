@@ -222,6 +222,7 @@ if uploaded_file is not None:
                       labels={"value": "Giá trị", "Thời gian": "Mốc đo"},
                       template="plotly_white")
                 fig.update_traces(hovertemplate='Thời gian: %{x|%d/%m/%Y %H:%M}<br>Giá trị: %{y:.2f}')
+                fig.update_traces(mode='lines+markers', marker=dict(size=8))
         
                 st.plotly_chart(fig, use_container_width=True)
 
