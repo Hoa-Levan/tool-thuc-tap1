@@ -19,8 +19,8 @@ def handle_zone_selection(df, filtered_df):
         if selected_zone != "Tất cả":
             full_zone_df = df[df[zone_col].astype(str).str.strip() == selected_zone].copy()
             
-            if len(full_zone_df) > 750: # Giới hạn xuống 500 điểm để cực mượt
-                step = len(full_zone_df) // 750
+            if len(full_zone_df) > 500: # Giới hạn xuống 500 điểm để cực mượt
+                step = len(full_zone_df) // 500
                 filtered_df = full_zone_df.iloc[::step].copy()
             else:
                 filtered_df = full_zone_df
