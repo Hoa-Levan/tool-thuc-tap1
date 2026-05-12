@@ -6,6 +6,7 @@ from datetime import timedelta
 from hourly_logic import handle_hourly_view
 from display_logic import get_chart_data
 from zone_logic import handle_zone_selection
+from device_logic import process_device_columns
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
@@ -257,9 +258,12 @@ if uploaded_file is not None:
                 st.warning("⚠️ Không có dữ liệu phù hợp để hiển thị biểu đồ.")
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
+            from device_logic import process_device_columns
+            filtered_df = process_device_columns(filtered_df)
+            
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
                 # Danh sách các cột thời gian muốn đưa lên trước
-                time_related_cols = ['Tên khu', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT']
+                time_related_cols = ['Tên khu', 'Ngày', 'Trạng thái', 'Phương thức hoạt động', 'Người điều khiển', 'Trạng thái Bơm', 'Trạng thái Van']
                 
                 # Lấy danh sách tất cả các cột hiện có trong filtered_df
                 all_cols = filtered_df.columns.tolist()
