@@ -6,7 +6,7 @@ from datetime import timedelta
 from hourly_logic import handle_hourly_view
 from display_logic import get_chart_data
 from zone_logic import handle_zone_selection
-from device_logic import process_device_columns
+from bomvan_logic import process_device_columns
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
@@ -49,9 +49,10 @@ if uploaded_file is not None:
         df['Ngày'] = df['Thời gian'].dt.date
         df['Tháng'] = df['Thời gian'].dt.to_period('M').astype(str)
         df['Năm_Col'] = df['Thời gian'].dt.year.astype(str)
+        df = process_device_columns(df)
         
         # 2. XỬ LÝ DỮ LIỆU TẤT CẢ CÁC CỘT (Ép kiểu số & Tách dấu /)
-        exclude_cols = ['STT', 'Thời gian', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT', 'Tên khu', 'Trạng thái', 'Phương thức hoạt động', 'Người điều khiển']
+        exclude_cols = ['STT', 'Thời gian', 'Ngày', 'Tháng', 'Năm_Col', 'Tuần_HT', 'Quý_HT', 'Sáu_Tháng_HT', 'Tên khu', 'Trạng thái', 'Phương thức hoạt động', 'Người điều khiển', 'Bơm', 'Van']
         for col in df.columns:
             if col not in exclude_cols:
                 df[col] = df[col].apply(extract_value)
@@ -258,7 +259,7 @@ if uploaded_file is not None:
                 st.warning("⚠️ Không có dữ liệu phù hợp để hiển thị biểu đồ.")
 
             # 7. HIỂN THỊ BẢNG DỮ LIỆU CHI TIẾT
-            from device_logic import process_device_columns
+            from bomvan_logic import process_device_columns
             filtered_df = process_device_columns(filtered_df)
             
             with st.expander("🔍 Xem bảng dữ liệu chi tiết"):
