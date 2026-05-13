@@ -41,9 +41,6 @@ if uploaded_file is not None:
         data = json.load(uploaded_file)
         df = pd.DataFrame(data)
         
-        # GỌI HÀM SAU KHI LOAD DF
-        df = cleanup_monitoring_columns(df)
-        
         # 1. CHUẨN HÓA THỜI GIAN
         df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
         df = df.dropna(subset=['Thời gian']).sort_values('Thời gian')
