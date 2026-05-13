@@ -125,7 +125,7 @@ if uploaded_file is not None:
             # Tìm đoạn code gọi handle_zone_selection và sửa thành:
             filtered_df, current_zone, column_order = handle_zone_selection(df, filtered_df)
             render_confirm_button()
-        if should_load();
+        if should_load():
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
