@@ -40,27 +40,6 @@ if uploaded_file is not None:
     try:
         data = json.load(uploaded_file)
         df = pd.DataFrame(data)
-        def cleanup_monitoring_columns(df):
-            new_df = df.copy()
-            
-            # Danh sách các cột nhiệt độ/độ ẩm viết tắt cần xử lý
-            target_cols = {
-                'tempKK': (0, 60),   # Nhiệt độ: giữ trong khoảng 0-60 độ
-                'humiKK': (0, 100)   # Độ ẩm: giữ trong khoảng 0-100%
-            }
-            
-            for col, (vmin, vmax) in target_cols.items():
-                if col in new_df.columns:
-                    # Chuyển về số, nếu là 265.00 hoặc ngoài khoảng an toàn thì biến thành NaN (trống)
-                    new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
-                    new_df[col] = new_df[col].apply(lambda x: x if (vmin <= x <= vmax) else pd.NA)
-        
-            # Xóa các cột 'Nhiệt độ' và 'Độ ẩm' tiếng Việt nếu chúng đang bị trống/trùng lặp
-            cols_to_drop = ['Nhiệt độ', 'Độ ẩm', 'Nhiệt độ EC', 'Nhiệt độ PH']
-            existing_drop = [c for c in cols_to_drop if c in new_df.columns]
-            new_df = new_df.drop(columns=existing_drop)
-            
-            return new_df
         
         # GỌI HÀM SAU KHI LOAD DF
         df = cleanup_monitoring_columns(df)
