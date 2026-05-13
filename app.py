@@ -33,7 +33,7 @@ def extract_value(val):
         return 0.0
 if uploaded_file is not None:
     try:
-        data = json.load(uploaded_file
+        data = json.load(uploaded_file)
         df = pd.DataFrame(data)
         # 1. CHUẨN HÓA THỜI GIAN
         df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
