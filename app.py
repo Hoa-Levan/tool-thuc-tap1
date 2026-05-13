@@ -7,10 +7,12 @@ from hourly_logic import handle_hourly_view
 from display_logic import get_chart_data
 from zone_logic import handle_zone_selection
 from bomvan_logic import process_device_columns
+from control_logic import init_control_state, render_confirm_button, should_load
 
 # Cấu hình trang và Giao diện
 st.set_page_config(page_title="Hệ thống Phân tích Nông nghiệp Toàn diện", layout="wide")
 st.title("🍀 Công cụ Phân tích Dữ liệu Nông nghiệp")
+init_control_state()
 
 uploaded_file = st.file_uploader("Nạp tệp tin JSON của bạn", type=['json'])
 
@@ -122,6 +124,8 @@ if uploaded_file is not None:
             )
             # Tìm đoạn code gọi handle_zone_selection và sửa thành:
             filtered_df, current_zone, column_order = handle_zone_selection(df, filtered_df)
+            render_confirm_button()
+        if should_load();
 
         # 5. HIỂN THỊ SỐ LIỆU TRUNG BÌNH
         if not filtered_df.empty:
@@ -283,6 +287,8 @@ if uploaded_file is not None:
                 
             # Thông báo trạng thái vận hành
             st.success("✅ Hệ thống đang vận hành và cập nhật dữ liệu liên tục.")
-
+            
+        else:
+            st.info("👈 Vui lòng chọn thời gian, khu vực và các thông số, sau đó nhấn **'XÁC NHẬN VÀ TẢI DỮ LIỆU'** ở menu bên trái.")
     except Exception as e:
         st.error(f"⚠️ Đã xảy ra lỗi: {e}")
