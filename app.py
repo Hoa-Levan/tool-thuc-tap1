@@ -43,32 +43,22 @@ if uploaded_file is not None:
         def cleanup_monitoring_columns(df):
             new_df = df.copy()
             
-            # 1. Xử lý NHIỆT ĐỘ
-            # Ưu tiên lấy dữ liệu từ 'tempKK' nếu 'Nhiệt độ' bị trống hoặc bằng 0
-            if 'tempKK' in new_df.columns and 'Nhiệt độ' in new_df.columns:
-                new_df['Nhiệt độ'] = new_df.apply(
-                    lambda row: row['tempKK'] if (pd.isna(row['Nhiệt độ']) or row['Nhiệt độ'] == 0) else row['Nhiệt độ'], 
-                    axis=1
-                )
-            elif 'tempKK' in new_df.columns:
-                new_df = new_df.rename(columns={'tempKK': 'Nhiệt độ'})
-        
-            # 2. Xử lý ĐỘ ẨM
-            if 'humiKK' in new_df.columns and 'Độ ẩm' in new_df.columns:
-                new_df['Độ ẩm'] = new_df.apply(
-                    lambda row: row['humiKK'] if (pd.isna(row['Độ ẩm']) or row['Độ ẩm'] == 0) else row['Độ ẩm'], 
-                    axis=1
-                )
-            elif 'humiKK' in new_df.columns:
-                new_df = new_df.rename(columns={'humiKK': 'Độ ẩm'})
-        
-            # 3. Xóa các cột thừa và các cột nhiệt độ trùng lặp khác
-            # Bạn liệt kê tất cả các tên cột muốn xóa vào đây
-            cols_to_drop = ['tempKK', 'humiKK', 'Nhiệt độ EC', 'Nhiệt độ PH'] 
-            # Lưu ý: 'Nhiệt độ EC/PH' thường là nhiệt độ dung dịch, nếu không cần thì xóa cho gọn
+            # Danh sách các cột nhiệt độ/độ ẩm viết tắt cần xử lý
+            target_cols = {
+                'tempKK': (0, 60),   # Nhiệt độ: giữ trong khoảng 0-60 độ
+                'humiKK': (0, 100)   # Độ ẩm: giữ trong khoảng 0-100%
+            }
             
-            existing_drop_cols = [c for c in cols_to_drop if c in new_df.columns]
-            new_df = new_df.drop(columns=existing_drop_cols)
+            for col, (vmin, vmax) in target_cols.items():
+                if col in new_df.columns:
+                    # Chuyển về số, nếu là 265.00 hoặc ngoài khoảng an toàn thì biến thành NaN (trống)
+                    new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
+                    new_df[col] = new_df[col].apply(lambda x: x if (vmin <= x <= vmax) else pd.NA)
+        
+            # Xóa các cột 'Nhiệt độ' và 'Độ ẩm' tiếng Việt nếu chúng đang bị trống/trùng lặp
+            cols_to_drop = ['Nhiệt độ', 'Độ ẩm', 'Nhiệt độ EC', 'Nhiệt độ PH']
+            existing_drop = [c for c in cols_to_drop if c in new_df.columns]
+            new_df = new_df.drop(columns=existing_drop)
             
             return new_df
         
