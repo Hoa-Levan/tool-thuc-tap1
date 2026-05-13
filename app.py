@@ -40,6 +40,40 @@ if uploaded_file is not None:
     try:
         data = json.load(uploaded_file)
         df = pd.DataFrame(data)
+def cleanup_monitoring_columns(df):
+    new_df = df.copy()
+    
+    # 1. Xử lý NHIỆT ĐỘ
+    # Ưu tiên lấy dữ liệu từ 'tempKK' nếu 'Nhiệt độ' bị trống hoặc bằng 0
+    if 'tempKK' in new_df.columns and 'Nhiệt độ' in new_df.columns:
+        new_df['Nhiệt độ'] = new_df.apply(
+            lambda row: row['tempKK'] if (pd.isna(row['Nhiệt độ']) or row['Nhiệt độ'] == 0) else row['Nhiệt độ'], 
+            axis=1
+        )
+    elif 'tempKK' in new_df.columns:
+        new_df = new_df.rename(columns={'tempKK': 'Nhiệt độ'})
+
+    # 2. Xử lý ĐỘ ẨM
+    if 'humiKK' in new_df.columns and 'Độ ẩm' in new_df.columns:
+        new_df['Độ ẩm'] = new_df.apply(
+            lambda row: row['humiKK'] if (pd.isna(row['Độ ẩm']) or row['Độ ẩm'] == 0) else row['Độ ẩm'], 
+            axis=1
+        )
+    elif 'humiKK' in new_df.columns:
+        new_df = new_df.rename(columns={'humiKK': 'Độ ẩm'})
+
+    # 3. Xóa các cột thừa và các cột nhiệt độ trùng lặp khác
+    # Bạn liệt kê tất cả các tên cột muốn xóa vào đây
+    cols_to_drop = ['tempKK', 'humiKK', 'Nhiệt độ EC', 'Nhiệt độ PH'] 
+    # Lưu ý: 'Nhiệt độ EC/PH' thường là nhiệt độ dung dịch, nếu không cần thì xóa cho gọn
+    
+    existing_drop_cols = [c for c in cols_to_drop if c in new_df.columns]
+    new_df = new_df.drop(columns=existing_drop_cols)
+    
+    return new_df
+
+# GỌI HÀM SAU KHI LOAD DF
+df = cleanup_monitoring_columns(df)
         
         # 1. CHUẨN HÓA THỜI GIAN
         df['Thời gian'] = pd.to_datetime(df['Thời gian'], format='%Y-%m-%d %H-%M-%S', errors='coerce')
