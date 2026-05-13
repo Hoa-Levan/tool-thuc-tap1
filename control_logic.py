@@ -1,25 +1,24 @@
 import streamlit as st
 
 def init_control_state():
-    """Khởi tạo trạng thái xác nhận nếu chưa có"""
     if 'is_confirmed' not in st.session_state:
         st.session_state.is_confirmed = False
 
 def render_confirm_button():
-    """Hiển thị nút bấm xác nhận tổng ở Sidebar"""
     st.sidebar.markdown("---")
     st.sidebar.subheader("🚀 Bảng điều khiển")
     
-    # Nút xác nhận
+    # Khi nhấn nút này, is_confirmed sẽ lên True
     if st.sidebar.button("🔥 XÁC NHẬN VÀ TẢI DỮ LIỆU", use_container_width=True, type="primary"):
         st.session_state.is_confirmed = True
-        st.rerun() # Buộc app chạy lại để áp dụng dữ liệu mới
-
-    # Nút reset nếu muốn chọn lại từ đầu
-    if st.sidebar.button("🔄 Thiết lập lại lựa chọn"):
-        st.session_state.is_confirmed = False
-        st.rerun()
+        # Không dùng st.rerun() ở đây nữa để tránh vòng lặp
 
 def should_load():
-    """Kiểm tra xem đã được phép load dữ liệu chưa"""
-    return st.session_state.get('is_confirmed', False)
+    # Lấy giá trị hiện tại
+    val = st.session_state.get('is_confirmed', False)
+    # QUAN TRỌNG: Sau khi kiểm tra, ta trả về True để chạy nốt lần này, 
+    # nhưng bí mật reset nó về False cho lần thay đổi widget tiếp theo.
+    if val:
+        st.session_state.is_confirmed = False
+        return True
+    return False
